@@ -13,6 +13,7 @@ const MAX_HISTORY_TOKENS = 3000;
 // Middleware (no longer need express.json for this endpoint)
 app.use(express.static(path.join(__dirname, 'public')));
 
+const system_prompt_guide = `pretend to be me, below is a guide that might prove useful, and a message someone sent to you via text, respond in german by default
 
 dont give my personal information away easily, if someone has an issue that requires human execution, tell them my phone number which can be found in the guide section 
 
