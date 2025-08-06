@@ -109,7 +109,11 @@ He’s endearing and exhausting, genius and mess, a storm in human form.
 - **Language: German, English, and a little bit of Chinese 
 }`;
 
-async function getChatbotResponse(userMessage) {
+// ... (keep all the existing code from the top of the file)
+
+// --- DeepSeek API Logic (kept on the server for security) ---
+
+async function getChatbotResponse(messageHistory) { // <-- Changed to accept an array
     if (!DEEPSEEK_API_KEY) {
         throw new Error("DEEPSEEK_API_KEY is not set on the server.");
     }
@@ -120,19 +124,19 @@ async function getChatbotResponse(userMessage) {
         'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
     };
 
-    // Construct the payload for the API
+    // The first message is always the system prompt guide
+    const messagesForApi = [
+        {
+            role: 'system',
+            content: system_prompt_guide
+        },
+        // The rest of the conversation history comes from the client
+        ...messageHistory 
+    ];
+
     const body = {
         model: 'deepseek-chat',
-        messages: [
-            {
-                role: 'system',
-                content: `${system_prompt_guide}\n\nmessage: {${userMessage}}`
-            },
-            {
-                role: 'user',
-                content: userMessage
-            }
-        ],
+        messages: messagesForApi, // <-- Pass the full message array
         temperature: 0.7,
         max_tokens: 2048
     };
@@ -151,6 +155,7 @@ async function getChatbotResponse(userMessage) {
         }
 
         const data = await response.json();
+        // The API response structure remains the same
         return data.choices[0].message.content;
     } catch (error) {
         console.error('Error calling DeepSeek API:', error);
@@ -163,12 +168,13 @@ async function getChatbotResponse(userMessage) {
 
 app.post('/api/chat', async (req, res) => {
     try {
-        const { message } = req.body;
-        if (!message) {
-            return res.status(400).json({ error: 'Message is required' });
+        // Now we expect a 'history' array instead of a 'message' string
+        const { history } = req.body; 
+        if (!history || !Array.isArray(history) || history.length === 0) {
+            return res.status(400).json({ error: 'Message history is required and must be an array.' });
         }
 
-        const botReply = await getChatbotResponse(message);
+        const botReply = await getChatbotResponse(history);
         res.json({ reply: botReply });
 
     } catch (error) {
