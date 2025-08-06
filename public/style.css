@@ -24,19 +24,19 @@ body {
     gap: 20px;
 }
 
-header {
+/* Header section */
+#header {
     text-align: center;
-    /* NEW: Add some margin below the logo */
     margin-bottom: -10px; 
 }
 
-/* REMOVED the old #header h1 style */
-
-/* NEW: Style for the dragon logo */
+/* Style for the logo */
 #logo {
-    width: 60px; /* Control the size of the logo */
-    height: 60px;
+    /* MODIFIED: Adjusted size for the new icon */
+    width: 70px; 
+    height: 70px;
 }
+
 /* The main chat container */
 #chat-container {
     width: 100%;
