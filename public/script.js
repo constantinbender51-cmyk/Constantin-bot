@@ -10,58 +10,55 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
 
         const userMessage = messageInput.value.trim();
-        if (userMessage === '') {
-            return;
-        }
+        if (userMessage === '') return;
 
-        // --- Stage 1: Display message and get instant acknowledgment ---
-
+        // 1. Add user message to UI and update history locally
         const checkmarkElement = addMessageToUI(userMessage, 'user-message');
-        const currentMessageHistory = [...conversationHistory, { role: 'user', content: userMessage }];
-        
+        conversationHistory.push({ role: 'user', content: userMessage });
         messageInput.value = '';
 
-        // Instantly acknowledge the message to show the checkmark
-        fetch('/api/ack', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: userMessage }) // Send the message just in case
-        }).then(response => {
-            if (response.ok && checkmarkElement) {
+        // 2. Create the URL with the history as a query parameter
+        const historyParam = encodeURIComponent(JSON.stringify(conversationHistory));
+        const eventSource = new EventSource(`/api/stream?history=${historyParam}`);
+
+        // 3. Listen for events from the server
+        eventSource.addEventListener('ack', (e) => {
+            console.log('Acknowledgment received.');
+            if (checkmarkElement) {
                 checkmarkElement.classList.add('visible');
             }
-        }).catch(err => console.error("Ack failed:", err)); // Don't disrupt flow if this fails
+        });
 
-        // --- Stage 2: Get the actual chatbot response ---
-
-        // Show typing indicator immediately after sending
-        typingIndicator.classList.remove('hidden');
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-
-        fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ history: currentMessageHistory }), 
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok.');
+        eventSource.addEventListener('typing', (e) => {
+            console.log('Typing event received.');
+            const data = JSON.parse(e.data);
+            if (data.status === true) {
+                typingIndicator.classList.remove('hidden');
+                chatWindow.scrollTop = chatWindow.scrollHeight;
             }
-            return response.json();
-        })
-        .then(data => {
-            const botReply = data.reply;
-            
-            // Update the official history only after a successful response
-            conversationHistory = [...currentMessageHistory, { role: 'assistant', content: botReply }];
+        });
 
+        eventSource.addEventListener('message', (e) => {
+            console.log('Message event received.');
+            const data = JSON.parse(e.data);
+            const botReply = data.reply;
+
+            // Add the bot's reply to history and UI
+            conversationHistory.push({ role: 'assistant', content: botReply });
             typingIndicator.classList.add('hidden');
             addMessageToUI(botReply, 'bot-message');
-        })
-        .catch(error => {
-            console.error('Error fetching chatbot response:', error);
+        });
+
+        eventSource.addEventListener('done', (e) => {
+            console.log('Stream finished.');
+            eventSource.close(); // We're done, so close the connection
+        });
+
+        eventSource.addEventListener('error', (e) => {
+            console.error('An error occurred in the stream:', e);
             typingIndicator.classList.add('hidden');
             addMessageToUI('Sorry, something went wrong. Please try again.', 'bot-message');
+            eventSource.close();
         });
     });
 
