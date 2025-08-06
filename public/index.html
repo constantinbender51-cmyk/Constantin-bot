@@ -14,6 +14,13 @@
         <div id="chat-container">
             <div id="chat-window">
                 <!-- Messages will be added here by JavaScript -->
+                
+                <!-- NEW: Typing indicator element -->
+                <div id="typing-indicator" class="message bot-message hidden">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
             </div>
             <form id="chat-form">
                 <input type="text" id="message-input" placeholder="Type your message..." autocomplete="off" required>
