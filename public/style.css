@@ -154,3 +154,36 @@ body {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1.0); }
 }
+/* --- Checkmark Indicator Styles --- */
+
+.user-message {
+    position: relative; /* Required for positioning the checkmark inside */
+    padding-right: 30px; /* Add space on the right for the checkmark */
+}
+
+.checkmark {
+    position: absolute; /* Position it relative to the message bubble */
+    right: 10px;
+    bottom: 8px;
+    width: 15px;
+    height: 15px;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s ease-in-out; /* Smooth fade-in effect */
+}
+
+.checkmark.visible {
+    opacity: 1; /* Make it visible */
+}
+
+/* This creates the checkmark shape using borders */
+.checkmark::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid #ffffff; /* White checkmark */
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
