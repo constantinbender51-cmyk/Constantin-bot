@@ -12,15 +12,16 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- The header is now outside the main app container to allow the logo to span the full width -->
+    <div id="header">
+        <!-- I will put your logo URL here -->
+        <img src="YOUR_LOGO_URL_HERE" alt="Blended Suit Logo" id="logo">
+    </div>
+
     <div id="app-container">
-        <div id="header">
-            <!-- MODIFIED: Changed the image src to the businessman icon -->
-            <img src="https://www.svgrepo.com/show/493405/people-suit.svg" alt="Businessman Logo" id="logo">
-        </div>
-        
         <div id="chat-container">
             <div id="chat-window">
-                <!-- Messages will be added here by JavaScript -->
+                <!-- The opening message will be added here by JavaScript -->
                 <div id="typing-indicator" class="message bot-message hidden">
                     <div class="dot"></div>
                     <div class="dot"></div>
