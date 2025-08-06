@@ -129,7 +129,20 @@ async function getChatbotResponse(sessionHistory) {
 
 // --- API Endpoint ---
 
+// ... (keep all the existing code from the top)
+
+// --- NEW ACKNOWLEDGMENT ENDPOINT ---
+// This endpoint's only job is to confirm receipt of a message instantly.
+app.post('/api/ack', (req, res) => {
+    // We don't need to do anything with the message here, just confirm we got it.
+    console.log("Acknowledged message receipt.");
+    res.status(200).json({ status: 'received' });
+});
+
+
+// --- API Endpoint ---
 app.post('/api/chat', async (req, res) => {
+    // This function remains the same as before
     try {
         const { history: sessionHistory } = req.body;
         if (!sessionHistory || !Array.isArray(sessionHistory) || sessionHistory.length === 0) {
@@ -145,6 +158,9 @@ app.post('/api/chat', async (req, res) => {
         res.status(500).json({ error: 'Failed to get a response from the chatbot.' });
     }
 });
+
+// ... (keep the rest of the file the same)
+
 
 // Start the server
 app.listen(port, () => {
