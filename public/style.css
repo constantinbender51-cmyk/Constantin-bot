@@ -1,10 +1,10 @@
-/* --- Black and Grey Theme --- */
+/* --- Black, White, and Grey Theme --- */
 
 /* General Body Styling */
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background-color: #121212; /* Near-black background */
-    color: #e0e0e0; /* Light grey text for readability */
+    background-color: #ffffff; /* White background */
+    color: #212529; /* Dark text for readability */
     margin: 0;
     padding: 20px;
     display: flex;
@@ -28,7 +28,7 @@ body {
 #header h1 {
     font-size: 2.5rem;
     font-weight: 600;
-    color: #ffffff; /* Pure white for the main title */
+    color: #000000; /* Black title */
     margin: 0;
 }
 
@@ -37,10 +37,10 @@ body {
     width: 100%;
     height: 65vh;
     max-height: 500px;
-    background-color: #1e1e1e; /* Dark grey for the chat window */
+    background-color: #ffffff; /* White chat window */
     border-radius: 12px;
-    border: 1px solid #333; /* Subtle border */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    border: 1px solid #dee2e6; /* Light grey border */
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -61,17 +61,18 @@ body {
     border-radius: 18px;
     max-width: 80%;
     line-height: 1.5;
-    color: #f5f5f5; /* Light text for all messages */
 }
 
 .user-message {
-    background-color: #3a3a3c; /* Medium-dark grey for user */
+    background-color: #000000; /* Black for user messages */
+    color: #ffffff; /* White text */
     align-self: flex-end;
     border-bottom-right-radius: 4px;
 }
 
 .bot-message {
-    background-color: #2c2c2e; /* Slightly lighter grey for bot */
+    background-color: #e9ecef; /* Light grey for bot messages */
+    color: #212529; /* Dark text */
     align-self: flex-start;
     border-bottom-left-radius: 4px;
 }
@@ -80,35 +81,35 @@ body {
 #chat-form {
     display: flex;
     padding: 15px;
-    border-top: 1px solid #333;
-    background-color: #1e1e1e; /* Match chat container background */
+    border-top: 1px solid #dee2e6;
+    background-color: #f8f9fa; /* Slightly off-white for the form area */
 }
 
 #message-input {
     flex-grow: 1;
     padding: 12px 18px;
-    border: 1px solid #444;
+    border: 1px solid #ced4da;
     border-radius: 24px;
     margin-right: 10px;
     font-size: 16px;
-    background-color: #2c2c2e; /* Dark input field */
-    color: #f5f5f5; /* Light text color for input */
+    background-color: #ffffff;
+    color: #212529;
 }
 
 #message-input::placeholder {
-    color: #8e8e93; /* Softer grey for placeholder text */
+    color: #6c757d;
 }
 
 #message-input:focus {
     outline: none;
-    border-color: #58585a;
-    box-shadow: 0 0 0 2px rgba(150, 150, 150, 0.2);
+    border-color: #868e96;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
 }
 
 #chat-form button {
     padding: 0 20px;
     border: none;
-    background-color: #007aff; /* Using a pop of blue for the send button */
+    background-color: #000000; /* Black send button */
     color: white;
     border-radius: 24px;
     cursor: pointer;
@@ -118,7 +119,7 @@ body {
 }
 
 #chat-form button:hover {
-    background-color: #0a84ff;
+    background-color: #343a40;
 }
 
 /* --- Typing Indicator Styles --- */
@@ -136,7 +137,7 @@ body {
 #typing-indicator .dot {
     width: 8px;
     height: 8px;
-    background-color: #6c6c70; /* Grey dots */
+    background-color: #adb5bd; /* Grey dots */
     border-radius: 50%;
     animation: bounce 1.3s infinite ease-in-out;
 }
