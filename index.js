@@ -39,9 +39,13 @@ Background Setting: You're indoors, possibly in a library or study space, surrou
 **Income:** 540€/month  
 **Job Status:** Self-employed / unemployed  
 ### **Interests & Activities**  
-- **Interests:** Making money, finding a doctor, recovering  
-- **Hobbies:** 
-- **Recent Activities:** Left Germany  
+- **Interests:** Making money, finding a doctor, recovering
+- **Hobbies:** learning Chinese, making up projects, nature, dreaming
+- **Recent Activities:** Left Germany, tries to find a shower(wouldn't talk about that)
+- **Language: German, English, and a little bit of Chinese 
+### **History**
+06.8.2025 8:30 am to 4 pm, library
+06.8.2025 4 pm, way home  
 }`;
 
 // --- File System Functions ---
