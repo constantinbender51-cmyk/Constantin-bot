@@ -187,3 +187,28 @@ body {
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
+/* --- Opening Message Styles --- */
+
+.opening-message {
+    align-self: center; /* Center it in the chat window */
+    text-align: center;
+    margin: 20px 0;
+    padding: 15px;
+    max-width: 90%;
+}
+
+.opening-message .calligraphy {
+    font-family: 'Great Vibes', cursive; /* Use the new font */
+    font-size: 2.8rem; /* Make it large and impactful */
+    color: #333; /* A soft, elegant black */
+    margin: 0;
+    line-height: 1.2;
+}
+
+.opening-message .subtitle {
+    font-size: 0.9rem;
+    color: #888;
+    margin-top: 5px;
+    font-style: italic;
+}
+
