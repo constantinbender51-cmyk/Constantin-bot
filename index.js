@@ -1,23 +1,18 @@
 const express = require('express');
 const path = require('path');
 const fetch = require('node-fetch');
-const fs = require('fs').promises; // Using the promise-based version of the File System module
+const fs = require('fs').promises;
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+const CHATLOG_FILE = path.join(__dirname, 'chatlog.json');
+const MAX_HISTORY_TOKENS = 3000;
 
-// --- Configuration ---
-const CHATLOG_FILE = path.join(__dirname, 'chatlog.json'); // Defines the path for our log file
-const MAX_HISTORY_TOKENS = 3000; // Reserve ~1000 tokens for the new prompt and response. Adjust as needed.
-
-// Middleware
-app.use(express.json());
+// Middleware (no longer need express.json for this endpoint)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// The system prompt guide remains the same
-const system_prompt_guide = `pretend to be me, below is a guide that might prove useful, and a message someone sent to you via text, respond in german by default
 
 dont give my personal information away easily, if someone has an issue that requires human execution, tell them my phone number which can be found in the guide section 
 
@@ -48,17 +43,66 @@ Background Setting: You're indoors, possibly in a library or study space, surrou
 06.8.2025 4 pm, way home  
 }`;
 
-// --- File System Functions ---
+// --- File System & Helper Functions (These remain the same) ---
+async function readMasterHistory() { /* ... same as before ... */ }
+async function appendToMasterHistory(userMessage, botMessage) { /* ... same as before ... */ }
+function pruneHistory(history) { /* ... same as before ... */ }
+async function getChatbotResponse(sessionHistory) { /* ... same as before ... */ }
 
+// --- NEW STREAMING ENDPOINT ---
+app.get('/api/stream', async (req, res) => {
+    // 1. Set headers for Server-Sent Events
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders(); // Send headers immediately
+
+    // Helper to send events to the client
+    const sendEvent = (eventName, data) => {
+        res.write(`event: ${eventName}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+        // 2. Get history from query parameter
+        const sessionHistory = JSON.parse(req.query.history);
+        if (!sessionHistory || !Array.isArray(sessionHistory)) {
+            throw new Error("Invalid history format");
+        }
+
+        // 3. INSTANTLY send acknowledgment and typing events
+        sendEvent('ack', { status: 'received' });
+        sendEvent('typing', { status: true });
+
+        // 4. Perform the slow AI call
+        const latestUserMessage = sessionHistory[sessionHistory.length - 1];
+        const botReplyContent = await getChatbotResponse(sessionHistory);
+        const botMessage = { role: 'assistant', content: botReplyContent };
+
+        // 5. Log the conversation after getting a response
+        await appendToMasterHistory(latestUserMessage, botMessage);
+
+        // 6. Send the final message and close the stream
+        sendEvent('message', { reply: botReplyContent });
+        sendEvent('done', { status: 'finished' });
+        res.end();
+
+    } catch (error) {
+        console.error("Error in stream:", error);
+        sendEvent('error', { message: 'Failed to get a response.' });
+        res.end();
+    }
+});
+
+
+// --- Helper function implementations (copy these from your previous file) ---
 async function readMasterHistory() {
     try {
         await fs.access(CHATLOG_FILE);
         const data = await fs.readFile(CHATLOG_FILE, 'utf8');
         return JSON.parse(data);
     } catch (error) {
-        if (error.code === 'ENOENT') {
-            return [];
-        }
+        if (error.code === 'ENOENT') return [];
         console.error("Error reading chatlog.json:", error);
         return [];
     }
@@ -74,8 +118,6 @@ async function appendToMasterHistory(userMessage, botMessage) {
         console.error("Error writing to chatlog.json:", error);
     }
 }
-
-// --- History Pruning Function ---
 
 function pruneHistory(history) {
     let totalTokens = 0;
@@ -94,25 +136,13 @@ function pruneHistory(history) {
     return prunedHistory;
 }
 
-// --- API Logic ---
-
 async function getChatbotResponse(sessionHistory) {
-    if (!DEEPSEEK_API_KEY) {
-        throw new Error("DEEPSEEK_API_KEY is not set on the server.");
-    }
+    if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not set on the server.");
     const masterHistory = await readMasterHistory();
     const combinedHistory = [...masterHistory, ...sessionHistory];
     const prunedHistory = pruneHistory(combinedHistory);
-    const messagesForApi = [
-        { role: 'system', content: system_prompt_guide },
-        ...prunedHistory
-    ];
-    const body = {
-        model: 'deepseek-chat',
-        messages: messagesForApi,
-        temperature: 0.7,
-        max_tokens: 1024
-    };
+    const messagesForApi = [{ role: 'system', content: system_prompt_guide }, ...prunedHistory];
+    const body = { model: 'deepseek-chat', messages: messagesForApi, temperature: 0.7, max_tokens: 1024 };
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEEPSEEK_API_KEY}` },
@@ -126,40 +156,6 @@ async function getChatbotResponse(sessionHistory) {
     const data = await response.json();
     return data.choices[0].message.content;
 }
-
-// --- API Endpoint ---
-
-// ... (keep all the existing code from the top)
-
-// --- NEW ACKNOWLEDGMENT ENDPOINT ---
-// This endpoint's only job is to confirm receipt of a message instantly.
-app.post('/api/ack', (req, res) => {
-    // We don't need to do anything with the message here, just confirm we got it.
-    console.log("Acknowledged message receipt.");
-    res.status(200).json({ status: 'received' });
-});
-
-
-// --- API Endpoint ---
-app.post('/api/chat', async (req, res) => {
-    // This function remains the same as before
-    try {
-        const { history: sessionHistory } = req.body;
-        if (!sessionHistory || !Array.isArray(sessionHistory) || sessionHistory.length === 0) {
-            return res.status(400).json({ error: 'Session history is required.' });
-        }
-        const latestUserMessage = sessionHistory[sessionHistory.length - 1];
-        const botReplyContent = await getChatbotResponse(sessionHistory);
-        const botMessage = { role: 'assistant', content: botReplyContent };
-        await appendToMasterHistory(latestUserMessage, botMessage);
-        res.json({ reply: botReplyContent });
-    } catch (error) {
-        console.error("Error in /api/chat endpoint:", error);
-        res.status(500).json({ error: 'Failed to get a response from the chatbot.' });
-    }
-});
-
-// ... (keep the rest of the file the same)
 
 
 // Start the server
