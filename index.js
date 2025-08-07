@@ -25,6 +25,7 @@ try {
 }
 
 // --- NEW STREAMING ENDPOINT ---
+// --- NEW STREAMING ENDPOINT (CORRECTED) ---
 app.get('/api/stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -46,23 +47,28 @@ app.get('/api/stream', async (req, res) => {
         sendEvent('typing', { status: true });
 
         const latestUserMessage = sessionHistory[sessionHistory.length - 1];
+        
+        // --- THE FIX IS HERE ---
+        // 1. getChatbotResponse now returns an object: { message, execution }
         const aiResponseObject = await getChatbotResponse(sessionHistory);
         
-        // Use the message part for the assistant's role in the log
+        // 2. Use the .message property for the log
         const botMessageForLog = { role: 'assistant', content: aiResponseObject.message };
 
         await appendToMasterHistory(latestUserMessage, botMessageForLog);
 
+        // 3. Send ONLY the .message property to the user
         sendEvent('message', { reply: aiResponseObject.message });
         sendEvent('done', { status: 'finished' });
         res.end();
 
-    } catch (error) {
+    } catch (error)
         console.error("Error in stream:", error);
         sendEvent('error', { message: 'Failed to get a response.' });
         res.end();
     }
 });
+
 
 // --- Helper function implementations (CORRECTED) ---
 
