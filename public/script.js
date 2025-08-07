@@ -4,10 +4,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageInput = document.getElementById('message-input');
     const typingIndicator = document.getElementById('typing-indicator');
 
-    // Start with an empty conversation history
     let conversationHistory = [];
+    let hasStarted = false; // Flag to track if the conversation has started
 
-    // The old opening message functions have been completely removed.
+    // --- Display the initial placeholder message ---
+    function displayOpeningMessage() {
+        const openingMessage = document.createElement('div');
+        openingMessage.id = 'opening-message';
+        openingMessage.textContent = "AI Constantin here. Ask away.";
+        chatWindow.insertBefore(openingMessage, typingIndicator);
+    }
+
+    displayOpeningMessage();
 
     chatForm.addEventListener('submit', (event) => {
         event.preventDefault();
@@ -15,8 +23,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const userMessage = messageInput.value.trim();
         if (userMessage === '') return;
 
+        // --- If this is the first message, remove the opening text ---
+        if (!hasStarted) {
+            const openingMessage = document.getElementById('opening-message');
+            if (openingMessage) {
+                openingMessage.remove();
+            }
+            hasStarted = true; // Set the flag
+        }
+
         const checkmarkElement = addMessageToUI(userMessage, 'user-message');
-        // We now push to a temporary history to be sent
         const currentMessageHistory = [...conversationHistory, { role: 'user', content: userMessage }];
         messageInput.value = '';
 
@@ -36,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = JSON.parse(e.data);
             const botReply = data.reply;
 
-            // Update the main history only after a successful response
             conversationHistory.push({ role: 'user', content: userMessage });
             conversationHistory.push({ role: 'assistant', content: botReply });
             
