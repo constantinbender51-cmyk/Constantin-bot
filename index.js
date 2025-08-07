@@ -164,8 +164,6 @@ function pruneHistory(history) {
     console.log(`History pruned to ${totalTokens} tokens.`);
     return prunedHistory;
 }
-
-async function getChatbotResponse(sessionHistory) {
 async function getChatbotResponse(sessionHistory) {
     if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not set on the server.");
     
