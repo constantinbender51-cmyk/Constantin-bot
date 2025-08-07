@@ -14,7 +14,10 @@ const MAX_HISTORY_TOKENS = 3000;
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Read the system prompt from the external file at startup ---
+// --- NEW: Configuration for Notifications ---
+// IMPORTANT: Change this to your own secret topic!
+const NTFY_TOPIC = 'constantin-bot-notifications-xyz123'; 
+
 let system_prompt_guide;
 try {
     system_prompt_guide = fs.readFileSync(path.join(__dirname, 'prompt_guide.txt'), 'utf8');
@@ -24,8 +27,27 @@ try {
     system_prompt_guide = "You are a helpful assistant."; 
 }
 
-// --- STREAMING ENDPOINT ---
+// --- NEW: Function to send the notification ---
+async function relayMessageToOwner(userMessage) {
+    console.log(`Relaying message to owner: ${userMessage}`);
+    try {
+        await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+            method: 'POST',
+            headers: {
+                'Title': 'New Message from Constantinbot User',
+                'Priority': 'default'
+            },
+            body: userMessage // Send the user's message as the body of the notification
+        });
+    } catch (error) {
+        console.error("Failed to send notification via ntfy:", error);
+    }
+}
+
+
+// --- Update the STREAMING ENDPOINT ---
 app.get('/api/stream', async (req, res) => {
+    // ... (res.setHeader and sendEvent function are the same) ...
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -46,16 +68,18 @@ app.get('/api/stream', async (req, res) => {
         sendEvent('typing', { status: true });
 
         const latestUserMessage = sessionHistory[sessionHistory.length - 1];
-        
-        // getChatbotResponse returns an object: { message, execution }
         const aiResponseObject = await getChatbotResponse(sessionHistory);
         
-        // Use the .message property for the log
-        const botMessageForLog = { role: 'assistant', content: aiResponseObject.message };
+        // --- NEW: Check the execution command ---
+        if (aiResponseObject.execution === 'relay_message') {
+            // Call the relay function with the user's original message
+            await relayMessageToOwner(latestUserMessage.content);
+        }
+        // You could add more else if blocks here for other commands in the future
 
+        const botMessageForLog = { role: 'assistant', content: aiResponseObject.message };
         await appendToMasterHistory(latestUserMessage, botMessageForLog);
 
-        // Send ONLY the .message property to the user
         sendEvent('message', { reply: aiResponseObject.message });
         sendEvent('done', { status: 'finished' });
         res.end();
