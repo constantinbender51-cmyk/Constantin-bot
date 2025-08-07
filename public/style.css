@@ -1,9 +1,9 @@
-/* --- Simple & Elegant Theme --- */
+/* --- Digital Sci-Fi Theme --- */
 
 /* General Body Styling */
 body {
-    background-color: #f0f2f5; /* Light grey background */
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #0d1117; /* A very dark blue, like a terminal screen */
+    font-family: 'Orbitron', sans-serif; /* Use the new sci-fi font */
     margin: 0;
     padding: 20px;
     display: flex;
@@ -17,20 +17,43 @@ body {
 #app-container {
     width: 100%;
     max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px; /* Space between header and chat window */
+}
+
+/* Header for the new sci-fi title */
+#header {
+    width: 100%;
+    text-align: center;
+}
+
+#sci-fi-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #00e676; /* A vibrant, "Matrix" green */
+    margin: 0;
+    letter-spacing: 2px; /* Add spacing for a digital feel */
+    text-shadow: 
+        0 0 5px #00e676,
+        0 0 10px #00e676,
+        0 0 20px #00e676; /* Glowing effect */
 }
 
 /* The main chat container */
 #chat-container {
     width: 100%;
-    height: 80vh; /* Taller chat window */
-    max-height: 700px;
-    background-color: #ffffff;
-    border-radius: 12px;
-    border: 1px solid #dee2e6;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    height: 75vh;
+    max-height: 650px;
+    background-color: rgba(10, 25, 47, 0.8); /* A translucent dark blue */
+    border-radius: 8px;
+    border: 1px solid #30a14e; /* Green border */
+    box-shadow: 0 0 15px rgba(0, 230, 118, 0.2);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    backdrop-filter: blur(3px); /* Frosted glass effect */
 }
 
 #chat-window {
@@ -40,94 +63,74 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
-}
-
-/* --- Opening Message Styles --- */
-.opening-message {
-    align-self: center;
-    text-align: center;
-    margin: 20px 0;
-    padding: 15px;
-    max-width: 90%;
-}
-
-.opening-message .calligraphy {
-    font-family: 'Great Vibes', cursive;
-    font-size: 3rem; /* A bit larger to be the main focus */
-    color: #222;
-    margin: 0;
-    line-height: 1.2;
-}
-
-.opening-message .subtitle {
-    font-size: 0.9rem;
-    color: #888;
-    margin-top: 5px;
-    font-style: italic;
+    font-family: monospace; /* Use a monospaced font for chat text */
 }
 
 /* --- Message Bubble & Form Styles --- */
 .message {
     padding: 10px 15px;
-    border-radius: 18px;
+    border-radius: 4px; /* Sharper edges for a digital look */
     max-width: 80%;
-    line-height: 1.5;
+    line-height: 1.6;
+    color: #c9d1d9; /* Light grey text */
 }
 
 .user-message {
-    background-color: #000000;
-    color: #ffffff;
+    background-color: transparent;
+    border: 1px solid #238636;
     align-self: flex-end;
-    border-bottom-right-radius: 4px;
     position: relative;
     padding-right: 30px;
 }
 
 .bot-message {
-    background-color: #e9ecef;
-    color: #212529;
+    background-color: rgba(35, 39, 47, 0.5);
     align-self: flex-start;
-    border-bottom-left-radius: 4px;
 }
 
 #chat-form {
     display: flex;
     padding: 15px;
-    border-top: 1px solid #dee2e6;
-    background-color: #f8f9fa;
+    border-top: 1px solid #30a14e;
+    background-color: transparent;
 }
 
 #message-input {
     flex-grow: 1;
     padding: 12px 18px;
-    border: 1px solid #ced4da;
-    border-radius: 24px;
+    border: 1px solid #238636;
+    border-radius: 4px;
     margin-right: 10px;
     font-size: 16px;
-    background-color: #ffffff;
-    color: #212529;
+    background-color: #0d1117;
+    color: #c9d1d9;
+    font-family: monospace;
 }
 
-#message-input::placeholder { color: #6c757d; }
+#message-input::placeholder { color: #484f58; }
 #message-input:focus {
     outline: none;
-    border-color: #868e96;
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+    border-color: #00e676;
+    box-shadow: 0 0 5px rgba(0, 230, 118, 0.5);
 }
 
 #chat-form button {
     padding: 0 20px;
-    border: none;
-    background-color: #000000;
-    color: white;
-    border-radius: 24px;
+    border: 1px solid #00e676;
+    background-color: #00e676;
+    color: #0d1117;
+    border-radius: 4px;
     cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
     font-size: 16px;
-    font-weight: 500;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
 }
 
-#chat-form button:hover { background-color: #343a40; }
+#chat-form button:hover {
+    background-color: #0d1117;
+    color: #00e676;
+}
 
 /* --- Checkmark & Typing Indicator Styles --- */
 .checkmark {
@@ -147,7 +150,7 @@ body {
     top: 1px;
     width: 4px;
     height: 8px;
-    border: solid #ffffff;
+    border: solid #00e676; /* Green checkmark */
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
@@ -156,9 +159,10 @@ body {
 #typing-indicator .dot {
     width: 8px;
     height: 8px;
-    background-color: #adb5bd;
+    background-color: #00e676;
     border-radius: 50%;
     animation: bounce 1.3s infinite ease-in-out;
+    box-shadow: 0 0 5px #00e676;
 }
 #typing-indicator .dot:nth-of-type(2) { animation-delay: -1.1s; }
 #typing-indicator .dot:nth-of-type(3) { animation-delay: -0.9s; }
