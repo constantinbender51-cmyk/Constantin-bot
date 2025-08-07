@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const fetch = require('node-fetch');
 const fs = require('fs'); // For synchronous file reading at startup
-const fsp = require('fs').promises; // **This is the promise-based version for async operations**
+const fsp = require('fs').promises; // For asynchronous file operations
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -24,9 +24,7 @@ try {
     system_prompt_guide = "You are a helpful assistant."; 
 }
 
-// --- NEW STREAMING ENDPOINT ---
-// --- NEW STREAMING ENDPOINT (CORRECTED) ---
-app.get('/api/stream', async (req, res) => {
+// --- STREAMING ENDPOINT ---
 app.get('/api/stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -49,33 +47,30 @@ app.get('/api/stream', async (req, res) => {
 
         const latestUserMessage = sessionHistory[sessionHistory.length - 1];
         
-        // --- THE FIX IS HERE ---
-        // 1. getChatbotResponse now returns an object: { message, execution }
+        // getChatbotResponse returns an object: { message, execution }
         const aiResponseObject = await getChatbotResponse(sessionHistory);
         
-        // 2. Use the .message property for the log
+        // Use the .message property for the log
         const botMessageForLog = { role: 'assistant', content: aiResponseObject.message };
 
         await appendToMasterHistory(latestUserMessage, botMessageForLog);
 
-        // 3. Send ONLY the .message property to the user
+        // Send ONLY the .message property to the user
         sendEvent('message', { reply: aiResponseObject.message });
         sendEvent('done', { status: 'finished' });
         res.end();
 
-    } catch (error) {  // <-- This was missing the opening curly brace
+    } catch (error) {
         console.error("Error in stream:", error);
         sendEvent('error', { message: 'Failed to get a response.' });
         res.end();
     }
 });
 
-
-// --- Helper function implementations (CORRECTED) ---
+// --- Helper function implementations ---
 
 async function readMasterHistory() {
     try {
-        // **FIX:** Use fsp (promises) for async operations
         await fsp.access(CHATLOG_FILE); 
         const data = await fsp.readFile(CHATLOG_FILE, 'utf8');
         return JSON.parse(data);
@@ -91,7 +86,6 @@ async function appendToMasterHistory(userMessage, botMessage) {
         const masterHistory = await readMasterHistory();
         masterHistory.push(userMessage);
         masterHistory.push(botMessage);
-        // **FIX:** Use fsp (promises) for async operations
         await fsp.writeFile(CHATLOG_FILE, JSON.stringify(masterHistory, null, 2), 'utf8');
     } catch (error) {
         console.error("Error writing to chatlog.json:", error);
@@ -137,29 +131,17 @@ async function getChatbotResponse(sessionHistory) {
     }
 
     const data = await response.json();
-    
-    // Add validation for the API response structure
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        throw new Error("Invalid API response structure");
-    }
-
     const aiResponseContent = data.choices[0].message.content;
 
-    // Handle both JSON and plain text responses
     try {
         const responseObject = JSON.parse(aiResponseContent);
-        if (typeof responseObject.message === 'string') {
-            console.log(`AI Action: ${responseObject.execution || 'none'}`);
-            return responseObject;
-        }
-        // If parsed JSON doesn't have message field, treat as plain text
-        return { message: aiResponseContent, execution: 'none' };
+        console.log(`AI Action: ${responseObject.execution}`);
+        return responseObject;
     } catch (error) {
-        // If not JSON, return as plain text
+        console.error("Failed to parse JSON from AI response:", aiResponseContent, error);
         return { message: aiResponseContent, execution: 'none' };
     }
 }
-
 
 // Start the server
 app.listen(port, () => {
