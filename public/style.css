@@ -1,9 +1,10 @@
-/* --- Magical & Elegant Theme --- */
+/* --- Minimalist System Font Theme --- */
 
 /* General Body Styling */
 body {
-    background-color: #f8f8f8; /* A slightly warmer white */
+    /* Use a standard, clean system font stack */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f4f4;
     margin: 0;
     padding: 20px;
     display: flex;
@@ -17,61 +18,17 @@ body {
 #app-container {
     width: 100%;
     max-width: 600px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 25px; /* A little more space */
 }
-
-/* ... (keep styles above this as they are) ... */
-
-/* Header for the title */
-#header {
-    width: 100%;
-    max-width: 500px; 
-    text-align: center;
-}
-
-/* A container for the title and signature */
-#title-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-#elegant-title {
-    font-family: 'Playwrite MX', cursive; /* Use the new Playwrite font */
-    font-size: 2.2rem; /* Adjusted for the new font's size */
-    font-weight: 400; /* Playwrite looks great at a normal weight */
-    color: #2c2c2c;
-    margin: 0;
-    letter-spacing: 0; /* Handwritten fonts often look better with default spacing */
-    text-align: left;
-}
-
-#signature {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #888;
-    letter-spacing: normal;
-    margin: 5px 0 0;
-    width: 100%;
-    text-align: right;
-}
-
-/* ... (the rest of the CSS file remains the same) ... */
-
 
 /* The main chat container */
 #chat-container {
     width: 100%;
-    height: 75vh;
-    max-height: 650px;
+    height: 80vh;
+    max-height: 700px;
     background-color: #ffffff;
-    border-radius: 10px; /* Slightly softer radius */
-    border: 1px solid #eaeaea;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -86,6 +43,23 @@ body {
     gap: 12px;
 }
 
+/* --- Opening Message Style --- */
+/* A simple, clean style for the initial message */
+#opening-message {
+    background-color: #f1f1f1;
+    color: #333;
+    align-self: flex-start; /* Align to the left like a bot message */
+    padding: 12px 18px;
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    max-width: 80%;
+    line-height: 1.5;
+    font-style: italic;
+    text-align: center;
+    align-self: center; /* Center it in the window */
+    margin-bottom: 20px;
+}
+
 /* --- Message Bubble & Form Styles --- */
 .message {
     padding: 10px 15px;
@@ -95,7 +69,7 @@ body {
 }
 
 .user-message {
-    background-color: #2c3e50; /* A sophisticated dark blue/grey */
+    background-color: #000000;
     color: #ffffff;
     align-self: flex-end;
     border-bottom-right-radius: 4px;
@@ -104,8 +78,8 @@ body {
 }
 
 .bot-message {
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: #f1f1f1;
+    color: #222;
     align-self: flex-start;
     border-bottom-left-radius: 4px;
 }
@@ -113,32 +87,32 @@ body {
 #chat-form {
     display: flex;
     padding: 15px;
-    border-top: 1px solid #eaeaea;
+    border-top: 1px solid #e0e0e0;
     background-color: #ffffff;
 }
 
 #message-input {
     flex-grow: 1;
     padding: 12px 18px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid #dcdcdc;
     border-radius: 20px;
     margin-right: 10px;
     font-size: 16px;
-    background-color: #fdfdfd;
-    color: #333;
+    background-color: #f9f9f9;
+    color: #222;
 }
 
-#message-input::placeholder { color: #a0a0a0; }
+#message-input::placeholder { color: #999; }
 #message-input:focus {
     outline: none;
-    border-color: #b0b0b0;
+    border-color: #aaa;
     background-color: #fff;
 }
 
 #chat-form button {
     padding: 0 20px;
     border: none;
-    background-color: #2c3e50; /* Match the user message color */
+    background-color: #000000;
     color: white;
     border-radius: 20px;
     cursor: pointer;
@@ -147,9 +121,7 @@ body {
     transition: background-color 0.2s ease;
 }
 
-#chat-form button:hover {
-    background-color: #34495e;
-}
+#chat-form button:hover { background-color: #333; }
 
 /* --- Checkmark & Typing Indicator Styles --- */
 .checkmark {
@@ -178,7 +150,7 @@ body {
 #typing-indicator .dot {
     width: 8px;
     height: 8px;
-    background-color: #c0c0c0;
+    background-color: #b5b5b5;
     border-radius: 50%;
     animation: bounce 1.3s infinite ease-in-out;
 }
@@ -188,32 +160,3 @@ body {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1.0); }
 }
-/* ... (keep the #elegant-title style as it is) ... */
-
-#elegant-title {
-    font-family: 'Cinzel Decorative', serif;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #2c2c2c;
-    margin: 0;
-    letter-spacing: 2px;
-    /* NEW: Add this to help with vertical alignment */
-    display: inline-flex;
-    align-items: baseline;
-    gap: 10px; /* Creates a little space between the title and signature */
-}
-
-/* NEW: Style for the signature text */
-#signature {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Use the standard body font */
-    font-size: 0.9rem; /* Make it small */
-    font-weight: 500;
-    color: #888; /* A lighter grey color */
-    letter-spacing: normal; /* Reset letter spacing */
-    text-transform: none; /* Reset text transform if any */
-    margin-left: 5px; /* A little extra space */
-}
-
-
-/* ... (the rest of the CSS file remains the same) ... */
-
