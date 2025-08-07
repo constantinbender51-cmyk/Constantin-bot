@@ -13,6 +13,8 @@ const MAX_HISTORY_TOKENS = 3000;
 
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
+// Add this near your other middleware
+app.use(express.json()); // Middleware to parse JSON bodies
 
 // --- NEW: Configuration for Notifications ---
 // IMPORTANT: Change this to your own secret topic!
@@ -46,8 +48,26 @@ async function relayMessageToOwner(userMessage) {
 
 
 // ... (keep top of file and helper functions the same) ...
+// --- NEW ENDPOINT for the confirmation button ---
+app.post('/api/confirm-relay', async (req, res) => {
+    try {
+        const { messageToRelay } = req.body;
+        if (!messageToRelay) {
+            return res.status(400).json({ error: 'No message provided to relay.' });
+        }
+        
+        // Call the existing function to send the notification
+        await relayMessageToOwner(messageToRelay);
+        
+        res.status(200).json({ success: true, message: 'Message relayed successfully.' });
+    } catch (error) {
+        console.error("Error in /api/confirm-relay:", error);
+        res.status(500).json({ error: 'Failed to relay message.' });
+    }
+});
 
-// --- Update the STREAMING ENDPOINT ---
+
+// --- Modify the STREAMING ENDPOINT ---
 app.get('/api/stream', async (req, res) => {
     // ... (res.setHeader and sendEvent function are the same) ...
     res.setHeader('Content-Type', 'text/event-stream');
@@ -72,11 +92,8 @@ app.get('/api/stream', async (req, res) => {
         const latestUserMessage = sessionHistory[sessionHistory.length - 1];
         let aiResponseObject = await getChatbotResponse(sessionHistory);
         
-        // --- NEW: Handle the execution command ---
-        if (aiResponseObject.execution === 'relay_message') {
-            await relayMessageToOwner(latestUserMessage.content);
-        } else if (aiResponseObject.execution === 'get_time_date') {
-            // Get the current date and time and append it to the AI's message.
+        // We no longer check for 'relay_message' here. That logic is now on the frontend.
+        if (aiResponseObject.execution === 'get_time_date') {
             const now = new Date();
             const formattedDate = now.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
             aiResponseObject.message += ` The current date and time is ${formattedDate}.`;
@@ -85,7 +102,15 @@ app.get('/api/stream', async (req, res) => {
         const botMessageForLog = { role: 'assistant', content: aiResponseObject.message };
         await appendToMasterHistory(latestUserMessage, botMessageForLog);
 
-        sendEvent('message', { reply: aiResponseObject.message });
+        // --- IMPORTANT: Send the full object to the frontend now ---
+        // The frontend needs to know the 'execution' type to decide if it should show a button.
+        sendEvent('message', { 
+            reply: aiResponseObject.message,
+            execution: aiResponseObject.execution,
+            // We also need to send the original user message content for the relay button
+            originalUserMessage: latestUserMessage.content 
+        });
+
         sendEvent('done', { status: 'finished' });
         res.end();
 
