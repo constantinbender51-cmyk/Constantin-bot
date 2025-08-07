@@ -35,26 +35,82 @@ document.addEventListener('DOMContentLoaded', () => {
             chatWindow.scrollTop = chatWindow.scrollHeight;
         });
 
-        // --- MODIFIED: This now handles the 'execution' command ---
-        eventSource.addEventListener('message', (e) => {
-            const data = JSON.parse(e.data);
-            const botReply = data.reply;
-            const execution = data.execution;
-            const originalUserMessage = data.originalUserMessage;
+        chatForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const userMessage = messageInput.value.trim();
+    if (userMessage === '') return;
 
-            conversationHistory.push({ role: 'user', content: userMessage });
-            conversationHistory.push({ role: 'assistant', content: botReply });
-            
-            document.getElementById('typing-indicator').classList.add('hidden');
-            
-            // Add the bot's message to the UI
-            const botMessageElement = addMessageToUI(botReply, 'bot-message');
+    if (!hasStarted) {
+        if (placeholder) placeholder.classList.add('hidden-placeholder');
+        hasStarted = true;
+    }
 
-            // --- NEW: If the execution is 'propose_relay', add the button ---
-            if (execution === 'propose_relay') {
-                addRelayButton(botMessageElement, originalUserMessage);
-            }
-        });
+    const checkmarkElement = addMessageToUI(userMessage, 'user-message');
+    const currentMessageHistory = [...conversationHistory, { role: 'user', content: userMessage }];
+    messageInput.value = '';
+
+    const historyParam = encodeURIComponent(JSON.stringify(currentMessageHistory));
+    
+    // --- Define eventSource here so it's in the correct scope ---
+    let eventSource = new EventSource(`/api/stream?history=${historyParam}`);
+
+    eventSource.addEventListener('ack', (e) => {
+        if (checkmarkElement) checkmarkElement.classList.add('visible');
+    });
+
+    eventSource.addEventListener('typing', (e) => {
+        document.getElementById('typing-indicator').classList.remove('hidden');
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
+
+    eventSource.addEventListener('message', (e) => {
+        const data = JSON.parse(e.data);
+        const botReply = data.reply;
+        const execution = data.execution;
+        const originalUserMessage = data.originalUserMessage;
+
+        // We update the main history here, so it's ready for the next message
+        conversationHistory.push({ role: 'user', content: userMessage });
+        conversationHistory.push({ role: 'assistant', content: botReply });
+        
+        document.getElementById('typing-indicator').classList.add('hidden');
+        
+        const botMessageElement = addMessageToUI(botReply, 'bot-message');
+
+        if (execution === 'propose_relay') {
+            addRelayButton(botMessageElement, originalUserMessage);
+        }
+    });
+
+    // --- THE FIX IS HERE: A more robust 'done' handler ---
+    eventSource.addEventListener('done', (e) => {
+        // 1. Explicitly close the connection.
+        eventSource.close();
+        
+        // 2. Remove all event listeners to prevent memory leaks and residual triggers.
+        // This is a good practice for robustness.
+        eventSource.onmessage = null;
+        eventSource.onerror = null;
+        eventSource.onopen = null;
+        
+        // 3. (Optional but good) Nullify the object to ensure it can't be reused.
+        eventSource = null; 
+        
+        console.log("EventSource connection closed successfully.");
+    });
+
+    // --- THE FIX IS HERE: A more robust 'error' handler ---
+    eventSource.addEventListener('error', (e) => {
+        console.error('An error occurred in the stream. Closing connection.', e);
+        document.getElementById('typing-indicator').classList.add('hidden');
+        
+        // Also forcefully close the connection on error to prevent retries.
+        if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+        }
+    });
+});
 
         // ... (rest of eventSource listeners are the same) ...
     });
