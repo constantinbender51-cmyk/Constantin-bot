@@ -23,32 +23,30 @@ body {
     gap: 25px; /* A little more space */
 }
 
-/* Header for the new elegant title */
 /* ... (keep styles above this as they are) ... */
 
 /* Header for the title */
 #header {
     width: 100%;
-    /* We can add max-width to control the title block width if needed */
     max-width: 500px; 
     text-align: center;
 }
 
-/* NEW: A container for the title and signature */
+/* A container for the title and signature */
 #title-container {
     display: flex;
-    flex-direction: column; /* Stack elements vertically */
-    align-items: flex-start; /* Align items to the start (left) by default */
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 #elegant-title {
-    font-family: 'Cinzel Decorative', serif;
-    font-size: 2.5rem;
-    font-weight: 700;
+    font-family: 'Playwrite MX', cursive; /* Use the new Playwrite font */
+    font-size: 2.2rem; /* Adjusted for the new font's size */
+    font-weight: 400; /* Playwrite looks great at a normal weight */
     color: #2c2c2c;
-    margin: 0; /* Remove default margins */
-    letter-spacing: 2px;
-    text-align: left; /* Ensure title text is left-aligned */
+    margin: 0;
+    letter-spacing: 0; /* Handwritten fonts often look better with default spacing */
+    text-align: left;
 }
 
 #signature {
@@ -57,23 +55,13 @@ body {
     font-weight: 500;
     color: #888;
     letter-spacing: normal;
-    margin: 5px 0 0; /* Add some space above the signature */
-    width: 100%; /* Make the signature take up the full width of the container */
-    text-align: right; /* Align the text to the right */
+    margin: 5px 0 0;
+    width: 100%;
+    text-align: right;
 }
-
 
 /* ... (the rest of the CSS file remains the same) ... */
 
-
-#elegant-title {
-    font-family: 'Cinzel Decorative', serif; /* Use the new magical font */
-    font-size: 2.5rem; /* Larger to show off the details */
-    font-weight: 700;
-    color: #2c2c2c; /* A deep, soft black */
-    margin: 0;
-    letter-spacing: 2px; /* A touch of spacing */
-}
 
 /* The main chat container */
 #chat-container {
