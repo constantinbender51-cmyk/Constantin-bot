@@ -4,40 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageInput = document.getElementById('message-input');
     const typingIndicator = document.getElementById('typing-indicator');
 
-    // The opening message content
-    const openingMessageText = "Hallo, mein Name ist Constantin";
-    
-    // Start the conversation history with the opening message
-    let conversationHistory = [
-        { role: 'assistant', content: openingMessageText }
-    ];
+    // Start with an empty conversation history
+    let conversationHistory = [];
 
-    // --- Function to display the special opening message ---
-    function displayOpeningMessage() {
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('opening-message');
-
-        // The main calligraphy text
-        const calligraphyText = document.createElement('p');
-        calligraphyText.classList.add('calligraphy');
-        calligraphyText.textContent = openingMessageText;
-
-        // A smaller subtitle
-        const subtitleText = document.createElement('p');
-        subtitleText.classList.add('subtitle');
-        subtitleText.textContent = "Wie kann Ich Ihnen helfen?";
-
-        messageElement.appendChild(calligraphyText);
-        messageElement.appendChild(subtitleText);
-        
-        chatWindow.insertBefore(messageElement, typingIndicator);
-    }
-
-    // --- Display the opening message when the page loads ---
-    displayOpeningMessage();
-
-
-    // --- The rest of the script remains the same ---
+    // The old opening message functions have been completely removed.
 
     chatForm.addEventListener('submit', (event) => {
         event.preventDefault();
@@ -46,10 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (userMessage === '') return;
 
         const checkmarkElement = addMessageToUI(userMessage, 'user-message');
-        conversationHistory.push({ role: 'user', content: userMessage });
+        // We now push to a temporary history to be sent
+        const currentMessageHistory = [...conversationHistory, { role: 'user', content: userMessage }];
         messageInput.value = '';
 
-        const historyParam = encodeURIComponent(JSON.stringify(conversationHistory));
+        const historyParam = encodeURIComponent(JSON.stringify(currentMessageHistory));
         const eventSource = new EventSource(`/api/stream?history=${historyParam}`);
 
         eventSource.addEventListener('ack', (e) => {
@@ -65,7 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = JSON.parse(e.data);
             const botReply = data.reply;
 
+            // Update the main history only after a successful response
+            conversationHistory.push({ role: 'user', content: userMessage });
             conversationHistory.push({ role: 'assistant', content: botReply });
+            
             typingIndicator.classList.add('hidden');
             addMessageToUI(botReply, 'bot-message');
         });
