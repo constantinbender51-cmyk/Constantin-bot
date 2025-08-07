@@ -34,6 +34,8 @@ body {
     overflow: hidden;
 }
 
+/* ... (keep styles above this) ... */
+
 #chat-window {
     flex-grow: 1;
     padding: 20px;
@@ -42,6 +44,49 @@ body {
     flex-direction: column;
     gap: 12px;
 }
+
+/* NEW: Styles for the floating placeholder */
+#placeholder {
+    /* Centering magic */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    height: 100%; /* Take up the full height of the chat window */
+    
+    /* Style */
+    color: #b0b0b0; /* A light grey for subtle text */
+    user-select: none; /* Make the text unselectable */
+    transition: opacity 0.3s ease-out; /* For a smooth fade-out */
+}
+
+#placeholder-logo {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 15px;
+    /* Use a filter to change the SVG color to match our theme */
+    filter: invert(75%) sepia(0%) saturate(0%) hue-rotate(180deg) brightness(100%) contrast(100%);
+}
+
+#placeholder-text {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* A class to hide the placeholder smoothly */
+.hidden-placeholder {
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+
+/* --- Message Bubble & Form Styles --- */
+/* ... (the rest of the file is the same) ... */
+
 
 /* --- Opening Message Style --- */
 /* A simple, clean style for the initial message */
