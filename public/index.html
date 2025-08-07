@@ -3,25 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Online</title> <!-- Changed title for theme -->
+    <title>System Assistant</title>
     
-    <!-- NEW: Import Google Font for Sci-Fi theme -->
+    <!-- NEW: Import Google Font for Robotic/Technical theme -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="app-container">
-        <!-- NEW: A header for the sci-fi message -->
         <div id="header">
-            <h1 id="sci-fi-title">I'm here to help.</h1>
+            <!-- The title remains the same, but will be styled differently -->
+            <h1 id="robotic-title">I'm here to help.</h1>
         </div>
         
         <div id="chat-container">
             <div id="chat-window">
-                <!-- The old opening message will no longer be generated here -->
                 <div id="typing-indicator" class="message bot-message hidden">
                     <div class="dot"></div>
                     <div class="dot"></div>
@@ -29,8 +28,8 @@
                 </div>
             </div>
             <form id="chat-form">
-                <input type="text" id="message-input" placeholder="Awaiting input..." autocomplete="off" required>
-                <button type="submit">Transmit</button>
+                <input type="text" id="message-input" placeholder="Enter command..." autocomplete="off" required>
+                <button type="submit">Send</button>
             </form>
         </div>
     </div>
