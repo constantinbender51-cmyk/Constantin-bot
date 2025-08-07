@@ -24,10 +24,47 @@ body {
 }
 
 /* Header for the new elegant title */
+/* ... (keep styles above this as they are) ... */
+
+/* Header for the title */
 #header {
     width: 100%;
+    /* We can add max-width to control the title block width if needed */
+    max-width: 500px; 
     text-align: center;
 }
+
+/* NEW: A container for the title and signature */
+#title-container {
+    display: flex;
+    flex-direction: column; /* Stack elements vertically */
+    align-items: flex-start; /* Align items to the start (left) by default */
+}
+
+#elegant-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c2c2c;
+    margin: 0; /* Remove default margins */
+    letter-spacing: 2px;
+    text-align: left; /* Ensure title text is left-aligned */
+}
+
+#signature {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #888;
+    letter-spacing: normal;
+    margin: 5px 0 0; /* Add some space above the signature */
+    width: 100%; /* Make the signature take up the full width of the container */
+    text-align: right; /* Align the text to the right */
+}
+
+
+/* ... (the rest of the CSS file remains the same) ... */
+
 
 #elegant-title {
     font-family: 'Cinzel Decorative', serif; /* Use the new magical font */
