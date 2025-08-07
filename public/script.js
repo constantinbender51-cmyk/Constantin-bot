@@ -3,19 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatForm = document.getElementById('chat-form');
     const messageInput = document.getElementById('message-input');
     const typingIndicator = document.getElementById('typing-indicator');
+    const placeholder = document.getElementById('placeholder'); // Get the placeholder element
 
     let conversationHistory = [];
-    let hasStarted = false; // Flag to track if the conversation has started
+    let hasStarted = false;
 
-    // --- Display the initial placeholder message ---
-    function displayOpeningMessage() {
-        const openingMessage = document.createElement('div');
-        openingMessage.id = 'opening-message';
-        openingMessage.textContent = "AI Constantin here. Ask away.";
-        chatWindow.insertBefore(openingMessage, typingIndicator);
-    }
-
-    displayOpeningMessage();
+    // No longer need to create the opening message, it's already in the HTML.
 
     chatForm.addEventListener('submit', (event) => {
         event.preventDefault();
@@ -23,13 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const userMessage = messageInput.value.trim();
         if (userMessage === '') return;
 
-        // --- If this is the first message, remove the opening text ---
+        // --- If this is the first message, hide the placeholder ---
         if (!hasStarted) {
-            const openingMessage = document.getElementById('opening-message');
-            if (openingMessage) {
-                openingMessage.remove();
+            if (placeholder) {
+                // Add a class to smoothly hide it instead of removing it abruptly
+                placeholder.classList.add('hidden-placeholder');
             }
-            hasStarted = true; // Set the flag
+            hasStarted = true;
         }
 
         const checkmarkElement = addMessageToUI(userMessage, 'user-message');
