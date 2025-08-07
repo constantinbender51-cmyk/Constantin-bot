@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const typingIndicator = document.getElementById('typing-indicator');
 
     // The opening message content
-    const openingMessageText = "Hello, I'm Constantin";
+    const openingMessageText = "Hallo, Ich bin Constantin bot";
     
     // Start the conversation history with the opening message
     let conversationHistory = [
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // A smaller subtitle
         const subtitleText = document.createElement('p');
         subtitleText.classList.add('subtitle');
-        subtitleText.textContent = "Feel free to ask me anything.";
+        subtitleText.textContent = "Was kann Ich für Sie tun?";
 
         messageElement.appendChild(calligraphyText);
         messageElement.appendChild(subtitleText);
