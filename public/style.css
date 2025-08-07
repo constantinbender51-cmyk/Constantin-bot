@@ -163,3 +163,32 @@ body {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1.0); }
 }
+/* ... (keep the #elegant-title style as it is) ... */
+
+#elegant-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c2c2c;
+    margin: 0;
+    letter-spacing: 2px;
+    /* NEW: Add this to help with vertical alignment */
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px; /* Creates a little space between the title and signature */
+}
+
+/* NEW: Style for the signature text */
+#signature {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Use the standard body font */
+    font-size: 0.9rem; /* Make it small */
+    font-weight: 500;
+    color: #888; /* A lighter grey color */
+    letter-spacing: normal; /* Reset letter spacing */
+    text-transform: none; /* Reset text transform if any */
+    margin-left: 5px; /* A little extra space */
+}
+
+
+/* ... (the rest of the CSS file remains the same) ... */
+
