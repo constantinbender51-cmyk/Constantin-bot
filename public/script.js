@@ -1,27 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ... (keep variable declarations at the top) ...
     const chatWindow = document.getElementById('chat-window');
     const chatForm = document.getElementById('chat-form');
     const messageInput = document.getElementById('message-input');
-    const typingIndicator = document.getElementById('typing-indicator');
-    const placeholder = document.getElementById('placeholder'); // Get the placeholder element
+    const placeholder = document.getElementById('placeholder');
 
     let conversationHistory = [];
     let hasStarted = false;
 
-    // No longer need to create the opening message, it's already in the HTML.
-
+    // ... (chatForm.addEventListener is mostly the same) ...
     chatForm.addEventListener('submit', (event) => {
         event.preventDefault();
-
         const userMessage = messageInput.value.trim();
         if (userMessage === '') return;
 
-        // --- If this is the first message, hide the placeholder ---
         if (!hasStarted) {
-            if (placeholder) {
-                // Add a class to smoothly hide it instead of removing it abruptly
-                placeholder.classList.add('hidden-placeholder');
-            }
+            if (placeholder) placeholder.classList.add('hidden-placeholder');
             hasStarted = true;
         }
 
@@ -37,51 +31,80 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         eventSource.addEventListener('typing', (e) => {
-            typingIndicator.classList.remove('hidden');
+            document.getElementById('typing-indicator').classList.remove('hidden');
             chatWindow.scrollTop = chatWindow.scrollHeight;
         });
 
+        // --- MODIFIED: This now handles the 'execution' command ---
         eventSource.addEventListener('message', (e) => {
             const data = JSON.parse(e.data);
             const botReply = data.reply;
+            const execution = data.execution;
+            const originalUserMessage = data.originalUserMessage;
 
             conversationHistory.push({ role: 'user', content: userMessage });
             conversationHistory.push({ role: 'assistant', content: botReply });
             
-            typingIndicator.classList.add('hidden');
-            addMessageToUI(botReply, 'bot-message');
+            document.getElementById('typing-indicator').classList.add('hidden');
+            
+            // Add the bot's message to the UI
+            const botMessageElement = addMessageToUI(botReply, 'bot-message');
+
+            // --- NEW: If the execution is 'propose_relay', add the button ---
+            if (execution === 'propose_relay') {
+                addRelayButton(botMessageElement, originalUserMessage);
+            }
         });
 
-        eventSource.addEventListener('done', (e) => {
-            eventSource.close();
-        });
-
-        eventSource.addEventListener('error', (e) => {
-            console.error('An error occurred in the stream:', e);
-            typingIndicator.classList.add('hidden');
-            addMessageToUI('Sorry, something went wrong. Please try again.', 'bot-message');
-            eventSource.close();
-        });
+        // ... (rest of eventSource listeners are the same) ...
     });
 
+    // --- NEW: Function to create and handle the relay button ---
+    function addRelayButton(messageElement, messageToRelay) {
+        const button = document.createElement('button');
+        button.textContent = 'Confirm: Send Message';
+        button.className = 'relay-button';
+        
+        button.onclick = async () => {
+            try {
+                const response = await fetch('/api/confirm-relay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messageToRelay: messageToRelay })
+                });
+                
+                if (response.ok) {
+                    button.textContent = '✓ Message Sent';
+                    button.disabled = true; // Prevent multiple clicks
+                    button.classList.add('sent');
+                } else {
+                    button.textContent = 'Error - Try Again';
+                }
+            } catch (error) {
+                console.error('Failed to relay message:', error);
+                button.textContent = 'Error - Network Issue';
+            }
+        };
+        
+        messageElement.appendChild(button);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // ... (addMessageToUI function is the same) ...
     function addMessageToUI(text, className) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', className);
-        
         const textNode = document.createElement('span');
         textNode.textContent = text;
         messageElement.appendChild(textNode);
-
         let checkmark = null;
         if (className === 'user-message') {
             checkmark = document.createElement('div');
             checkmark.classList.add('checkmark');
             messageElement.appendChild(checkmark);
         }
-        
-        chatWindow.insertBefore(messageElement, typingIndicator);
+        chatWindow.insertBefore(messageElement, document.getElementById('typing-indicator'));
         chatWindow.scrollTop = chatWindow.scrollHeight;
-
-        return checkmark;
+        return className === 'user-message' ? checkmark : messageElement;
     }
 });
