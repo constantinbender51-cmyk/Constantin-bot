@@ -166,6 +166,7 @@ function pruneHistory(history) {
 }
 
 async function getChatbotResponse(sessionHistory) {
+async function getChatbotResponse(sessionHistory) {
     if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not set on the server.");
     
     const masterHistory = await readMasterHistory();
@@ -187,17 +188,34 @@ async function getChatbotResponse(sessionHistory) {
     }
 
     const data = await response.json();
-    const aiResponseContent = data.choices[0].message.content;
+    let aiResponseContent = data.choices[0].message.content;
 
+    // --- THE FIX IS HERE: Clean the response string ---
     try {
-        const responseObject = JSON.parse(aiResponseContent);
-        console.log(`AI Action: ${responseObject.execution}`);
-        return responseObject;
+        // Find the first '{' and the last '}'
+        const startIndex = aiResponseContent.indexOf('{');
+        const endIndex = aiResponseContent.lastIndexOf('}');
+        
+        if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+            // Extract the JSON part of the string
+            const jsonString = aiResponseContent.substring(startIndex, endIndex + 1);
+            
+            // Now, parse the cleaned string
+            const responseObject = JSON.parse(jsonString);
+            console.log(`AI Action: ${responseObject.execution}`);
+            return responseObject;
+        } else {
+            // If no valid JSON structure is found, throw an error to be caught below
+            throw new Error("No valid JSON object found in the AI response.");
+        }
+
     } catch (error) {
         console.error("Failed to parse JSON from AI response:", aiResponseContent, error);
-        return { message: aiResponseContent, execution: 'none' };
+        // Fallback gracefully if parsing fails for any reason
+        return { message: "I seem to be having trouble formatting my thoughts. Please try rephrasing your question.", execution: 'none' };
     }
 }
+
 
 // Start the server
 app.listen(port, () => {
