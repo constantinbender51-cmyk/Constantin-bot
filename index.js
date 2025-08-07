@@ -138,15 +138,19 @@ async function getChatbotResponse(sessionHistory) {
     const data = await response.json();
     const aiResponseContent = data.choices[0].message.content;
 
+    // --- Parse the JSON response from the AI ---
     try {
         const responseObject = JSON.parse(aiResponseContent);
         console.log(`AI Action: ${responseObject.execution}`);
+        // Return the full object
         return responseObject;
     } catch (error) {
         console.error("Failed to parse JSON from AI response:", aiResponseContent, error);
+        // If the AI fails to return valid JSON, fallback gracefully.
         return { message: aiResponseContent, execution: 'none' };
     }
 }
+
 
 // Start the server
 app.listen(port, () => {
