@@ -30,16 +30,14 @@ try {
 }
 
 // --- NEW: Function to send the notification ---
-async function relayMessageToOwner(userMessage) {
-    console.log(`Relaying message to owner: ${userMessage}`);
+async function relayMessageToOwner(relayContent) {
+    const notificationTitle = `New Message via Constantinbot`;
+    console.log(`${notificationTitle}: ${relayContent}`);
     try {
         await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
             method: 'POST',
-            headers: {
-                'Title': 'New Message from Constantinbot User',
-                'Priority': 'default'
-            },
-            body: userMessage // Send the user's message as the body of the notification
+            headers: { 'Title': notificationTitle },
+            body: relayContent
         });
     } catch (error) {
         console.error("Failed to send notification via ntfy:", error);
@@ -93,7 +91,12 @@ app.get('/api/stream', async (req, res) => {
         let aiResponseObject = await getChatbotResponse(sessionHistory);
         
         // We no longer check for 'relay_message' here. That logic is now on the frontend.
-        if (aiResponseObject.execution === 'get_time_date') {
+        if (aiResponseObject.execution === 'relay_message') {
+            // If the AI says to relay, use the content it provides.
+            if (aiResponseObject.relay_content) {
+                await relayMessageToOwner(aiResponseObject.relay_content);
+            }
+        } else if (aiResponseObject.execution === 'get_time_date') {
             const now = new Date();
             const formattedDate = now.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
             aiResponseObject.message += ` The current date and time is ${formattedDate}.`;
