@@ -3,20 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Talk With Me</title>
+    <title>System Online</title> <!-- Changed title for theme -->
     
+    <!-- NEW: Import Google Font for Sci-Fi theme -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- The app-container now ONLY holds the chat window -->
     <div id="app-container">
+        <!-- NEW: A header for the sci-fi message -->
+        <div id="header">
+            <h1 id="sci-fi-title">I'm here to help.</h1>
+        </div>
+        
         <div id="chat-container">
             <div id="chat-window">
-                <!-- Messages will be added here by JavaScript -->
+                <!-- The old opening message will no longer be generated here -->
                 <div id="typing-indicator" class="message bot-message hidden">
                     <div class="dot"></div>
                     <div class="dot"></div>
@@ -24,8 +29,8 @@
                 </div>
             </div>
             <form id="chat-form">
-                <input type="text" id="message-input" placeholder="Type your message..." autocomplete="off" required>
-                <button type="submit">Send</button>
+                <input type="text" id="message-input" placeholder="Awaiting input..." autocomplete="off" required>
+                <button type="submit">Transmit</button>
             </form>
         </div>
     </div>
