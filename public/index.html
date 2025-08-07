@@ -22,7 +22,17 @@
         </div>
         
         <div id="chat-container">
-            <!-- ... (rest of the chat container) ... -->
+            <div id="chat-window">
+                <div id="typing-indicator" class="message bot-message hidden">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+            <form id="chat-form">
+                <input type="text" id="message-input" placeholder="Ask me anything..." autocomplete="off" required>
+                <button type="submit">Send</button>
+            </form><!-- ... (rest of the chat container) ... -->
         </div>
     </div>
     <script src="script.js"></script>
