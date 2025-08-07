@@ -45,6 +45,8 @@ async function relayMessageToOwner(userMessage) {
 }
 
 
+// ... (keep top of file and helper functions the same) ...
+
 // --- Update the STREAMING ENDPOINT ---
 app.get('/api/stream', async (req, res) => {
     // ... (res.setHeader and sendEvent function are the same) ...
@@ -68,14 +70,17 @@ app.get('/api/stream', async (req, res) => {
         sendEvent('typing', { status: true });
 
         const latestUserMessage = sessionHistory[sessionHistory.length - 1];
-        const aiResponseObject = await getChatbotResponse(sessionHistory);
+        let aiResponseObject = await getChatbotResponse(sessionHistory);
         
-        // --- NEW: Check the execution command ---
+        // --- NEW: Handle the execution command ---
         if (aiResponseObject.execution === 'relay_message') {
-            // Call the relay function with the user's original message
             await relayMessageToOwner(latestUserMessage.content);
+        } else if (aiResponseObject.execution === 'get_time_date') {
+            // Get the current date and time and append it to the AI's message.
+            const now = new Date();
+            const formattedDate = now.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
+            aiResponseObject.message += ` The current date and time is ${formattedDate}.`;
         }
-        // You could add more else if blocks here for other commands in the future
 
         const botMessageForLog = { role: 'assistant', content: aiResponseObject.message };
         await appendToMasterHistory(latestUserMessage, botMessageForLog);
@@ -90,6 +95,8 @@ app.get('/api/stream', async (req, res) => {
         res.end();
     }
 });
+
+// ... (rest of the file is the same) ...
 
 // --- Helper function implementations ---
 
