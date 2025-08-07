@@ -27,6 +27,7 @@ try {
 // --- NEW STREAMING ENDPOINT ---
 // --- NEW STREAMING ENDPOINT (CORRECTED) ---
 app.get('/api/stream', async (req, res) => {
+app.get('/api/stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -62,7 +63,7 @@ app.get('/api/stream', async (req, res) => {
         sendEvent('done', { status: 'finished' });
         res.end();
 
-    } catch (error)
+    } catch (error) {  // <-- This was missing the opening curly brace
         console.error("Error in stream:", error);
         sendEvent('error', { message: 'Failed to get a response.' });
         res.end();
