@@ -137,17 +137,25 @@ async function getChatbotResponse(sessionHistory) {
     }
 
     const data = await response.json();
+    
+    // Add validation for the API response structure
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        throw new Error("Invalid API response structure");
+    }
+
     const aiResponseContent = data.choices[0].message.content;
 
-    // --- Parse the JSON response from the AI ---
+    // Handle both JSON and plain text responses
     try {
         const responseObject = JSON.parse(aiResponseContent);
-        console.log(`AI Action: ${responseObject.execution}`);
-        // Return the full object
-        return responseObject;
+        if (typeof responseObject.message === 'string') {
+            console.log(`AI Action: ${responseObject.execution || 'none'}`);
+            return responseObject;
+        }
+        // If parsed JSON doesn't have message field, treat as plain text
+        return { message: aiResponseContent, execution: 'none' };
     } catch (error) {
-        console.error("Failed to parse JSON from AI response:", aiResponseContent, error);
-        // If the AI fails to return valid JSON, fallback gracefully.
+        // If not JSON, return as plain text
         return { message: aiResponseContent, execution: 'none' };
     }
 }
