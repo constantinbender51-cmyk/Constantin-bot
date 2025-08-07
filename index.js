@@ -1,7 +1,8 @@
 const express = require('express');
 const path = require('path');
 const fetch = require('node-fetch');
-const fs = require('fs'); // Use the base 'fs' module for sync read
+const fs = require('fs'); // For synchronous file reading at startup
+const fsp = require('fs').promises; // **This is the promise-based version for async operations**
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -13,74 +14,18 @@ const MAX_HISTORY_TOKENS = 3000;
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- NEW: Read the system prompt from the external file at startup ---
+// --- Read the system prompt from the external file at startup ---
 let system_prompt_guide;
 try {
-    // Read the file synchronously when the server starts.
     system_prompt_guide = fs.readFileSync(path.join(__dirname, 'prompt_guide.txt'), 'utf8');
     console.log("Successfully loaded prompt guide.");
 } catch (error) {
-    console.error("CRITICAL: Could not read prompt_guide.txt. The chatbot may not function correctly.", error);
-    // Provide a fallback prompt to prevent a crash
+    console.error("CRITICAL: Could not read prompt_guide.txt.", error);
     system_prompt_guide = "You are a helpful assistant."; 
 }
 
-// --- File System & Helper Functions (These remain the same) ---
-async function readMasterHistory() { /* ... same as before ... */ }
-async function appendToMasterHistory(userMessage, botMessage) { /* ... same as before ... */ }
-function pruneHistory(history) { /* ... same as before ... */ }
-async function getChatbotResponse(sessionHistory) { /* ... same as before ... */ }
-// ... (keep top of file the same) ...
-
-async function getChatbotResponse(sessionHistory) {
-    if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not set on the server.");
-    
-    // This part remains the same
-    const masterHistory = await readMasterHistory();
-    const combinedHistory = [...masterHistory, ...sessionHistory];
-    const prunedHistory = pruneHistory(combinedHistory);
-    const messagesForApi = [{ role: 'system', content: system_prompt_guide }, ...prunedHistory];
-    const body = { model: 'deepseek-chat', messages: messagesForApi, temperature: 0.7, max_tokens: 1024 };
-
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEEPSEEK_API_KEY}` },
-        body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(`API Error Response: ${errorBody}`);
-        throw new Error(`API request failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    const aiResponseContent = data.choices[0].message.content;
-
-    // --- NEW: Parse the JSON response from the AI ---
-    try {
-        // The AI's output is a string that is actually JSON. We need to parse it.
-        const responseObject = JSON.parse(aiResponseContent);
-        
-        // Log the intended execution for debugging/future use
-        console.log(`AI Action: ${responseObject.execution}`);
-        
-        // Here is where you would add logic for the execution in the future
-        // if (responseObject.execution === 'search_web') { /* ... call a search API ... */ }
-        
-        // Return the full object
-        return responseObject;
-
-    } catch (error) {
-        console.error("Failed to parse JSON from AI response:", aiResponseContent, error);
-        // If the AI fails to return valid JSON, fallback gracefully.
-        return { message: aiResponseContent, execution: 'none' };
-    }
-}
-
-// --- Update the STREAMING ENDPOINT ---
+// --- NEW STREAMING ENDPOINT ---
 app.get('/api/stream', async (req, res) => {
-    // ... (headers and sendEvent function are the same) ...
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -101,15 +46,13 @@ app.get('/api/stream', async (req, res) => {
         sendEvent('typing', { status: true });
 
         const latestUserMessage = sessionHistory[sessionHistory.length - 1];
-        
-        // getChatbotResponse now returns an object { message, execution }
         const aiResponseObject = await getChatbotResponse(sessionHistory);
         
-        const botMessage = { role: 'assistant', content: aiResponseObject.message }; // Log only the message part
+        // Use the message part for the assistant's role in the log
+        const botMessageForLog = { role: 'assistant', content: aiResponseObject.message };
 
-        await appendToMasterHistory(latestUserMessage, botMessage);
+        await appendToMasterHistory(latestUserMessage, botMessageForLog);
 
-        // Send only the message part to the frontend to be displayed
         sendEvent('message', { reply: aiResponseObject.message });
         sendEvent('done', { status: 'finished' });
         res.end();
@@ -121,15 +64,13 @@ app.get('/api/stream', async (req, res) => {
     }
 });
 
-// ... (rest of the file is the same) ...
+// --- Helper function implementations (CORRECTED) ---
 
-
-
-// --- Helper function implementations (copy these from your previous file) ---
 async function readMasterHistory() {
     try {
-        await fs.access(CHATLOG_FILE);
-        const data = await fs.readFile(CHATLOG_FILE, 'utf8');
+        // **FIX:** Use fsp (promises) for async operations
+        await fsp.access(CHATLOG_FILE); 
+        const data = await fsp.readFile(CHATLOG_FILE, 'utf8');
         return JSON.parse(data);
     } catch (error) {
         if (error.code === 'ENOENT') return [];
@@ -143,7 +84,8 @@ async function appendToMasterHistory(userMessage, botMessage) {
         const masterHistory = await readMasterHistory();
         masterHistory.push(userMessage);
         masterHistory.push(botMessage);
-        await fs.writeFile(CHATLOG_FILE, JSON.stringify(masterHistory, null, 2), 'utf8');
+        // **FIX:** Use fsp (promises) for async operations
+        await fsp.writeFile(CHATLOG_FILE, JSON.stringify(masterHistory, null, 2), 'utf8');
     } catch (error) {
         console.error("Error writing to chatlog.json:", error);
     }
@@ -168,25 +110,37 @@ function pruneHistory(history) {
 
 async function getChatbotResponse(sessionHistory) {
     if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not set on the server.");
+    
     const masterHistory = await readMasterHistory();
     const combinedHistory = [...masterHistory, ...sessionHistory];
     const prunedHistory = pruneHistory(combinedHistory);
     const messagesForApi = [{ role: 'system', content: system_prompt_guide }, ...prunedHistory];
     const body = { model: 'deepseek-chat', messages: messagesForApi, temperature: 0.7, max_tokens: 1024 };
+
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEEPSEEK_API_KEY}` },
         body: JSON.stringify(body)
     });
+
     if (!response.ok) {
         const errorBody = await response.text();
         console.error(`API Error Response: ${errorBody}`);
         throw new Error(`API request failed with status ${response.status}`);
     }
-    const data = await response.json();
-    return data.choices[0].message.content;
-}
 
+    const data = await response.json();
+    const aiResponseContent = data.choices[0].message.content;
+
+    try {
+        const responseObject = JSON.parse(aiResponseContent);
+        console.log(`AI Action: ${responseObject.execution}`);
+        return responseObject;
+    } catch (error) {
+        console.error("Failed to parse JSON from AI response:", aiResponseContent, error);
+        return { message: aiResponseContent, execution: 'none' };
+    }
+}
 
 // Start the server
 app.listen(port, () => {
