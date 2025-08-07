@@ -3,26 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Constantinbot</title>
+    <title>AI Constantin</title>
     
-    <!-- NEW: Import Google Font for Playwrite MX -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playwrite+MX:wght@300;400&display=swap" rel="stylesheet">
+    <!-- All Google Font imports have been removed -->
     
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- The app-container is now the top-level element -->
     <div id="app-container">
-        <div id="header">
-            <div id="title-container">
-                <h1 id="elegant-title">I'm here to help.</h1>
-                <p id="signature">-Constantinbot</p>
-            </div>
-        </div>
-        
         <div id="chat-container">
             <div id="chat-window">
+                <!-- The new opening message will be added here by JavaScript -->
                 <div id="typing-indicator" class="message bot-message hidden">
                     <div class="dot"></div>
                     <div class="dot"></div>
@@ -30,14 +22,9 @@
                 </div>
             </div>
             <form id="chat-form">
-                <input type="text" id="message-input" placeholder="Ask me anything..." autocomplete="off" required>
+                <input type="text" id="message-input" placeholder="Ask away..." autocomplete="off" required>
                 <button type="submit">Send</button>
-            </form><!-- ... (rest of the chat container) ... -->
-        </div>
-    </div>
-    <script src="script.js"></script>
-</body>
-</html>
+            </form>
         </div>
     </div>
 
