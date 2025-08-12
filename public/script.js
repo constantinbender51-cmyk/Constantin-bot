@@ -1,108 +1,32 @@
 document.addEventListener('DOMContentLoaded', () => {
     const chatWindow = document.getElementById('chat-window');
-    const chatForm = document.getElementById('chat-form');
+    const messageForm = document.getElementById('message-form');
     const messageInput = document.getElementById('message-input');
     const placeholder = document.getElementById('placeholder');
     const typingIndicator = document.getElementById('typing-indicator');
 
-    let conversationHistory = [];
-    let hasStarted = false;
+    let isNewSession = true; // Flag to track if this is the first message of the session
 
-    chatForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const userMessage = messageInput.value.trim();
-        if (userMessage === '') return;
-
-        if (!hasStarted) {
-            if (placeholder) placeholder.classList.add('hidden-placeholder');
-            hasStarted = true;
-        }
-
-        const checkmarkElement = addMessageToUI(userMessage, 'user-message');
-        
-        // --- IMPORTANT: Update history BEFORE making the request ---
-        // This was a subtle but critical bug. We add the user's message to the main
-        // history immediately, so it's ready for the next turn.
-        const tempHistoryForAPI = [...conversationHistory, { role: 'user', content: userMessage }];
-        
-        messageInput.value = '';
-
-        const historyParam = encodeURIComponent(JSON.stringify(tempHistoryForAPI));
-        const eventSource = new EventSource(`/api/stream?history=${historyParam}`);
-
-        // --- Show typing indicator immediately ---
-        typingIndicator.classList.remove('hidden');
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-
-        eventSource.addEventListener('ack', (e) => {
-            if (checkmarkElement) checkmarkElement.classList.add('visible');
-        });
-
-        eventSource.addEventListener('message', (e) => {
-            const data = JSON.parse(e.data);
-            const botReply = data.reply;
-            const execution = data.execution;
-            const originalUserMessage = data.originalUserMessage;
-
-            // --- Update main history with the bot's reply ---
-            conversationHistory.push({ role: 'user', content: userMessage });
-            conversationHistory.push({ role: 'assistant', content: botReply });
-            
-            const botMessageElement = addMessageToUI(botReply, 'bot-message');
-
-            if (execution === 'propose_relay') {
-                addRelayButton(botMessageElement, originalUserMessage);
-            }
-        });
-
-        // --- This is the correct way to handle the end of the stream ---
-        eventSource.addEventListener('done', (e) => {
-            typingIndicator.classList.add('hidden');
-            eventSource.close(); // Simply close the connection.
-            console.log("Stream finished and connection closed.");
-        });
-
-        eventSource.addEventListener('error', (e) => {
-            typingIndicator.classList.add('hidden');
-            addMessageToUI('Sorry, a connection error occurred.', 'bot-message');
-            eventSource.close(); // Close on error to prevent retries.
-            console.error('EventSource failed:', e);
-        });
-    });
-
-    function addRelayButton(messageElement, messageToRelay) {
-        const button = document.createElement('button');
-        button.textContent = 'Confirm: Send Message';
-        button.className = 'relay-button';
-        
-        button.onclick = async () => {
-            button.disabled = true; // Disable immediately on click
-            try {
-                const response = await fetch('/api/confirm-relay', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messageToRelay: messageToRelay })
+    // --- NEW: Function to load history on page start ---
+    const loadHistory = async () => {
+        try {
+            const response = await fetch('/api/history');
+            const history = await response.json();
+            if (history.length > 0) {
+                placeholder.style.display = 'none';
+                history.forEach(msg => {
+                    // Don't display the system-level session markers
+                    if (msg.content !== '--- NEW SESSION ---') {
+                        addMessage(msg.content, msg.role === 'user' ? 'user' : 'bot');
+                    }
                 });
-                
-                if (response.ok) {
-                    button.textContent = '✓ Message Sent';
-                    button.classList.add('sent');
-                } else {
-                    button.textContent = 'Error - Try Again';
-                    button.disabled = false;
-                }
-            } catch (error) {
-                console.error('Failed to relay message:', error);
-                button.textContent = 'Error - Network Issue';
-                button.disabled = false;
             }
-        };
-        
-        messageElement.appendChild(button);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
+        } catch (error) {
+            console.error('Failed to load chat history:', error);
+        }
+    };
 
-    function addMessageToUI(text, className) {
+    const addMessage = (text, sender, messageId = null) => {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', className);
         const textNode = document.createElement('span');
@@ -117,5 +41,57 @@ document.addEventListener('DOMContentLoaded', () => {
         chatWindow.insertBefore(messageElement, typingIndicator);
         chatWindow.scrollTop = chatWindow.scrollHeight;
         return className === 'user-message' ? checkmark : messageElement;
-    }
+    }// ... (addMessage function is the same) ...
+    };
+
+    messageForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const messageText = messageInput.value.trim();
+        if (!messageText) return;
+
+        placeholder.style.display = 'none';
+        const messageId = `msg-${Date.now()}`;
+        addMessage(messageText, 'user', messageId);
+        messageInput.value = '';
+        typingIndicator.style.display = 'flex';
+
+        // --- MODIFIED: We now send the message and the flag ---
+        const queryParams = new URLSearchParams({
+            message: messageText,
+            isNewSession: isNewSession
+        }).toString();
+
+        const eventSource = new EventSource(`/api/stream?${queryParams}`);
+        isNewSession = false; // After the first message, it's no longer a new session
+
+        eventSource.addEventListener('ack', (event) => {
+            const data = JSON.parse(event.data);
+            if (data.status === 'received') {
+                const sentMessage = document.getElementById(messageId);
+                if (sentMessage) {
+                    const checkmark = sentMessage.querySelector('.checkmark');
+                    if (checkmark) checkmark.classList.add('visible');
+                }
+            }
+        });
+
+        eventSource.addEventListener('message', (event) => {
+            const data = JSON.parse(event.data);
+            typingIndicator.style.display = 'none';
+            addMessage(data.reply, 'bot');
+        });
+
+        eventSource.addEventListener('done', () => {
+            eventSource.close();
+        });
+
+        eventSource.onerror = () => {
+            typingIndicator.style.display = 'none';
+            addMessage("Sorry, something went wrong. Please try again.", 'bot');
+            eventSource.close();
+        };
+    });
+
+    // --- NEW: Load history when the page loads ---
+    loadHistory();
 });
