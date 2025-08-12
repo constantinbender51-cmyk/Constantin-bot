@@ -178,6 +178,14 @@ app.get('/api/stream', async (req, res) => {
         // Passcode Check
         if (userMessageContent.includes(OWNER_PASSCODE)) {
             // ... (passcode logic is the same) ...
+            const masterHistory = await readMasterHistory();
+            const report = `--- SECRETARY REPORT ---\n\nCurrent Schedule:\n${await readPhoneSchedule()}\n\nLast 5 Chat Entries:\n${JSON.stringify(masterHistory.slice(-5), null, 2)}`;
+            
+            aiResponseObject = {
+                message: "Report sent to your device.",
+                execution: "contactIssuer",
+                parameters: { message: report }
+            };
         } else {
             // --- MODIFIED: Call the new getChatbotResponse ---
             aiResponseObject = await getChatbotResponse(userMessageForLog, isNewSession);
