@@ -1,36 +1,78 @@
-// This is the version that works aesthetically, but has no long-term memory.
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Element References ---
     const chatWindow = document.getElementById('chat-window');
     const chatForm = document.getElementById('chat-form');
     const messageInput = document.getElementById('message-input');
     const placeholder = document.getElementById('placeholder');
     const typingIndicator = document.getElementById('typing-indicator');
 
-    // This will now only hold the history for the CURRENT session.
-    let conversationHistory = []; 
+    // --- State ---
+    // This is now the ONLY state we need. It's true when the page loads, false after the first message.
+    let isNewSession = true;
 
+    // --- Safety Check ---
+    if (!chatWindow || !chatForm || !messageInput || !typingIndicator) {
+        console.error("Essential chat elements are missing from the HTML. Aborting script.");
+        alert("Error: Chat interface is not loaded correctly.");
+        return;
+    }
+
+    // --- YOUR addMessageToUI function (UNTOUCHED) ---
+    // This function is perfect as it is.
+    function addMessageToUI(text, className, messageId = null) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message', className);
+        if (messageId) {
+            messageElement.id = messageId;
+        }
+
+        const textNode = document.createElement('span');
+        textNode.textContent = text;
+        messageElement.appendChild(textNode);
+
+        let checkmark = null;
+        if (className === 'user-message') {
+            checkmark = document.createElement('div');
+            checkmark.classList.add('checkmark');
+            messageElement.appendChild(checkmark);
+        }
+
+        chatWindow.insertBefore(messageElement, typingIndicator);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        return checkmark;
+    }
+
+    // --- The working submit handler ---
     chatForm.addEventListener('submit', (event) => {
         event.preventDefault();
         const userMessage = messageInput.value.trim();
         if (userMessage === '') return;
 
-        if (placeholder) placeholder.style.display = 'none';
+        // Hide the placeholder when the first message is sent
+        if (placeholder && isNewSession) {
+            placeholder.style.display = 'none';
+        }
 
-        const checkmarkElement = addMessageToUI(userMessage, 'user-message');
-        
-        // Add user message to our temporary session history
-        conversationHistory.push({ role: 'user', content: userMessage });
+        const messageId = `msg-${Date.now()}`;
+        const checkmarkElement = addMessageToUI(userMessage, 'user-message', messageId);
         
         messageInput.value = '';
 
-        // Show typing indicator
         typingIndicator.classList.remove('hidden');
         chatWindow.scrollTop = chatWindow.scrollHeight;
 
-        // --- We will fix this part in the next step ---
-        // For now, this will just send the temporary history
-        const historyParam = encodeURIComponent(JSON.stringify(conversationHistory));
-        const eventSource = new EventSource(`/api/stream?history=${historyParam}`);
+        // --- The SIMPLE communication logic ---
+        // This correctly tells the backend if it's a new session,
+        // allowing the AI to use its long-term memory appropriately.
+        const queryParams = new URLSearchParams({
+            message: userMessage,
+            isNewSession: isNewSession
+        }).toString();
+        
+        // After this message, it's no longer a new session for this user's visit.
+        isNewSession = false; 
+
+        const eventSource = new EventSource(`/api/stream?${queryParams}`);
 
         eventSource.addEventListener('ack', (e) => {
             if (checkmarkElement) checkmarkElement.classList.add('visible');
@@ -38,12 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         eventSource.addEventListener('message', (e) => {
             const data = JSON.parse(e.data);
-            const botReply = data.reply;
-            
-            // Add bot's reply to our temporary session history
-            conversationHistory.push({ role: 'assistant', content: botReply });
-            
-            addMessageToUI(botReply, 'bot-message');
+            addMessageToUI(data.reply, 'bot-message');
         });
 
         eventSource.addEventListener('done', (e) => {
@@ -58,20 +95,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    function addMessageToUI(text, className) {
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('message', className);
-        const textNode = document.createElement('span');
-        textNode.textContent = text;
-        messageElement.appendChild(textNode);
-        let checkmark = null;
-        if (className === 'user-message') {
-            checkmark = document.createElement('div');
-            checkmark.classList.add('checkmark');
-            messageElement.appendChild(checkmark);
-        }
-        chatWindow.insertBefore(messageElement, typingIndicator);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-        return checkmark;
-    }
+    // NO MORE loadHistory() call. The page will always start fresh.
 });
