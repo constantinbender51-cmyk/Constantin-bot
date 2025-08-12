@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fsp } from 'fs';
 
-import { GoogleGenerativeAI } from "google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // --- ES Module __dirname fix ---
 const __filename = fileURLToPath(import.meta.url);
