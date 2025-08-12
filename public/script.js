@@ -7,32 +7,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let conversationHistory = [];
     let hasStarted = false;
-
     chatForm.addEventListener('submit', (event) => {
         event.preventDefault();
         const userMessage = messageInput.value.trim();
         if (userMessage === '') return;
 
-        if (!hasStarted) {
-            if (placeholder) placeholder.classList.add('hidden-placeholder');
-            hasStarted = true;
+        if (placeholder && isNewSession) {
+            placeholder.style.display = 'none';
         }
 
-        const checkmarkElement = addMessageToUI(userMessage, 'user-message');
-        
-        // --- IMPORTANT: Update history BEFORE making the request ---
-        // This was a subtle but critical bug. We add the user's message to the main
-        // history immediately, so it's ready for the next turn.
-        const tempHistoryForAPI = [...conversationHistory, { role: 'user', content: userMessage }];
+        const messageId = `msg-${Date.now()}`;
+        const checkmarkElement = addMessageToUI(userMessage, 'user-message', messageId);
         
         messageInput.value = '';
 
-        const historyParam = encodeURIComponent(JSON.stringify(tempHistoryForAPI));
-        const eventSource = new EventSource(`/api/stream?history=${historyParam}`);
-
-        // --- Show typing indicator immediately ---
         typingIndicator.classList.remove('hidden');
         chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        const queryParams = new URLSearchParams({
+            message: userMessage,
+            isNewSession: isNewSession
+        }).toString();
+        
+        isNewSession = false;
+
+        const eventSource = new EventSource(`/api/stream?${queryParams}`);
 
         eventSource.addEventListener('ack', (e) => {
             if (checkmarkElement) checkmarkElement.classList.add('visible');
@@ -40,20 +39,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         eventSource.addEventListener('message', (e) => {
             const data = JSON.parse(e.data);
-            const botReply = data.reply;
-            const execution = data.execution;
-            const originalUserMessage = data.originalUserMessage;
-
-            // --- Update main history with the bot's reply ---
-            conversationHistory.push({ role: 'user', content: userMessage });
-            conversationHistory.push({ role: 'assistant', content: botReply });
-            
-            const botMessageElement = addMessageToUI(botReply, 'bot-message');
-
-            if (execution === 'propose_relay') {
-                addRelayButton(botMessageElement, originalUserMessage);
-            }
+            addMessageToUI(data.reply, 'bot-message');
         });
+
+        eventSource.addEventListener('done', (e) => {
+            typingIndicator.classList.add('hidden');
+            eventSource.close();
+        });
+
+        eventSource.addEventListener('error', (e) => {
+            typingIndicator.classList.add('hidden');
+            addMessageToUI('Sorry, a connection error occurred.', 'bot-message');
+            eventSource.close();
+        });
+    });
 
         // --- This is the correct way to handle the end of the stream ---
         eventSource.addEventListener('done', (e) => {
@@ -138,51 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to load history:', error);
         }
     };
-    chatForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const userMessage = messageInput.value.trim();
-        if (userMessage === '') return;
-
-        if (placeholder && isNewSession) {
-            placeholder.style.display = 'none';
-        }
-
-        const messageId = `msg-${Date.now()}`;
-        const checkmarkElement = addMessageToUI(userMessage, 'user-message', messageId);
-        
-        messageInput.value = '';
-
-        typingIndicator.classList.remove('hidden');
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-
-        const queryParams = new URLSearchParams({
-            message: userMessage,
-            isNewSession: isNewSession
-        }).toString();
-        
-        isNewSession = false;
-
-        const eventSource = new EventSource(`/api/stream?${queryParams}`);
-
-        eventSource.addEventListener('ack', (e) => {
-            if (checkmarkElement) checkmarkElement.classList.add('visible');
-        });
-
-        eventSource.addEventListener('message', (e) => {
-            const data = JSON.parse(e.data);
-            addMessageToUI(data.reply, 'bot-message');
-        });
-
-        eventSource.addEventListener('done', (e) => {
-            typingIndicator.classList.add('hidden');
-            eventSource.close();
-        });
-
-        eventSource.addEventListener('error', (e) => {
-            typingIndicator.classList.add('hidden');
-            addMessageToUI('Sorry, a connection error occurred.', 'bot-message');
-            eventSource.close();
-        });
-    });
+    
     loadHistory();
 });
