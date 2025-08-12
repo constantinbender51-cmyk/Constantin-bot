@@ -16,7 +16,7 @@ const port = process.env.PORT || 3000;
 
 // --- Gemini Initialization ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5 flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 // --- Constants ---
 const CHATLOG_FILE = path.join(__dirname, 'chatlog.json');
@@ -131,7 +131,7 @@ async function getChatbotResponse(sessionHistory) {
             const jsonString = aiResponseContent.substring(startIndex, endIndex + 1);
             return JSON.parse(jsonString);
         } else {
-            throw new Error("No valid JSON object found in the Gemini response.");
+            throw new Error("No valid JSON object found in the Gemini response" + response);
         }
     } catch (error) {
         console.error("Error calling Gemini API:", error);
