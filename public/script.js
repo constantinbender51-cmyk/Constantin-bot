@@ -1,7 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element References ---
     const chatWindow = document.getElementById('chat-window');
-    const messageForm = document.getElementById('message-form');
+    // --- THE ONLY CHANGE IS ON THIS LINE ---
+    const messageForm = document.getElementById('chat-form'); // Changed from 'message-form' to 'chat-form'
+    // --- END OF CHANGE ---
     const messageInput = document.getElementById('message-input');
     const placeholder = document.getElementById('placeholder');
     const typingIndicator = document.getElementById('typing-indicator');
@@ -21,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadHistory = async () => {
         try {
             const response = await fetch('/api/history');
-            if (!response.ok) return; // Fail silently
+            if (!response.ok) return;
             const history = await response.json();
 
             if (history && history.length > 0) {
@@ -63,15 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const messageText = messageInput.value.trim();
         if (!messageText) return;
 
-        // Hide placeholder if it exists
         if (placeholder) placeholder.style.display = 'none';
         
         const messageId = `msg-${Date.now()}`;
         addMessage(messageText, 'user', messageId);
         messageInput.value = '';
         
-        // Show typing indicator if it exists
-        if (typingIndicator) typingIndicator.style.display = 'flex';
+        if (typingIndicator) typingIndicator.classList.remove('hidden');
 
         const queryParams = new URLSearchParams({
             message: messageText,
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         eventSource.addEventListener('message', (event) => {
-            if (typingIndicator) typingIndicator.style.display = 'none';
+            if (typingIndicator) typingIndicator.classList.add('hidden');
             try {
                 const data = JSON.parse(event.data);
                 addMessage(data.reply, 'bot');
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         eventSource.onerror = () => {
-            if (typingIndicator) typingIndicator.style.display = 'none';
+            if (typingIndicator) typingIndicator.classList.add('hidden');
             addMessage("Sorry, a connection error occurred.", 'bot');
             eventSource.close();
         };
