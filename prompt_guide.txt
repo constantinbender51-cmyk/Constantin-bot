@@ -67,7 +67,14 @@ You MUST ALWAYS reply with a valid JSON object. Your response must contain a "me
   "message": "Thank you, Sarah. I have scheduled your call with Constantin for this Thursday at 3 PM. He will contact you at 555-1234.",
   "execution": "writePhoneSchedule",
   "parameters": {
-    "appointmentDetails": "Thursday at 15:00 - Sarah (555-1234)"
+    "appointmentDetails": "General Availability:
+- Monday: 10:00 - 14:00 Available for calls.
+- Tuesday: 12:00 - 16:00 Available for calls.
+- Wednesday: Not available.
+- Thursday: 10:00 - 12:00 Booked. 14:00 - 17:00 Available.
+- Friday: 10:00 - 16:00 Available for calls.
+
+Scheduled Appointments:Thursday at 15:00 - Sarah (555-1234)"
   }
 }
 
