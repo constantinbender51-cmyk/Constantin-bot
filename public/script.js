@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         chatWindow.insertBefore(messageElement, typingIndicator);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
+        chatWindow.scrollTop = 0;
         return checkmark; // Return only the checkmark element for user messages
     }
 
