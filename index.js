@@ -99,23 +99,12 @@ function pruneHistory(history) {
 }
 
 // --- Main Chatbot Logic ---
-async function getChatbotResponse(userMessage, isNewSession) {
-    let masterHistory = await readMasterHistory();
-    if (!Array.isArray(masterHistory)) masterHistory = [];
+async function getChatbotResponse(sessionHistory) {
+    const masterHistory = await readMasterHistory();
+    const combinedHistory = [...masterHistory, ...sessionHistory];
+    const prunedHistory = pruneHistory(combinedHistory);
 
-    // --- NEW: Inject the session marker ---
-    if (isNewSession) {
-        masterHistory.push({
-            role: 'user',
-            // This is a system-level note for the AI, not a real user message.
-            content: '--- NEW SESSION ---' 
-        });
-    }
-    // Add the actual user message to the history
-    masterHistory.push(userMessage);
-
-    const prunedHistory = pruneHistory(masterHistory);
-
+    // --- DYNAMIC PROMPT INJECTION ---
     const promptTemplate = await fsp.readFile(PROMPT_TEMPLATE_FILE, 'utf8');
     const currentSchedule = await readPhoneSchedule();
     const finalSystemPrompt = promptTemplate.replace('[SCHEDULE_PLACEHOLDER]', currentSchedule);
@@ -139,9 +128,10 @@ async function getChatbotResponse(userMessage, isNewSession) {
         const endIndex = aiResponseContent.lastIndexOf('}');
         
         if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-            return JSON.parse(aiResponseContent.substring(startIndex, endIndex + 1));
+            const jsonString = aiResponseContent.substring(startIndex, endIndex + 1);
+            return JSON.parse(jsonString);
         } else {
-            throw new Error("No valid JSON object found in the Gemini response.");
+            throw new Error("No valid JSON object found in the Gemini response" + JSON.stringify(response, null, 2));
         }
     } catch (error) {
         console.error("Error calling Gemini API:", error);
@@ -162,22 +152,16 @@ app.get('/api/stream', async (req, res) => {
     };
 
     try {
-        // --- MODIFIED: We now get the message and the new session flag ---
-        const userMessageContent = req.query.message;
-        const isNewSession = req.query.isNewSession === 'true';
-
-        if (!userMessageContent) throw new Error("No message provided");
-
-        const userMessageForLog = { role: 'user', content: userMessageContent };
+        const sessionHistory = JSON.parse(req.query.history);
+        const latestUserMessage = sessionHistory[sessionHistory.length - 1];
 
         sendEvent('ack', { status: 'received' });
         sendEvent('typing', { status: true });
 
         let aiResponseObject;
 
-        // Passcode Check
-        if (userMessageContent.includes(OWNER_PASSCODE)) {
-            // ... (passcode logic is the same) ...
+        // --- Passcode Check ---
+        if (latestUserMessage.content.includes(OWNER_PASSCODE)) {
             const masterHistory = await readMasterHistory();
             const report = `--- SECRETARY REPORT ---\n\nCurrent Schedule:\n${await readPhoneSchedule()}\n\nLast 5 Chat Entries:\n${JSON.stringify(masterHistory.slice(-5), null, 2)}`;
             
@@ -187,8 +171,7 @@ app.get('/api/stream', async (req, res) => {
                 parameters: { message: report }
             };
         } else {
-            // --- MODIFIED: Call the new getChatbotResponse ---
-            aiResponseObject = await getChatbotResponse(userMessageForLog, isNewSession);
+            aiResponseObject = await getChatbotResponse(sessionHistory);
         }
         
         // --- Handle Execution Commands ---
@@ -204,7 +187,8 @@ app.get('/api/stream', async (req, res) => {
             if (message) await contactIssuer(message);
         }
 
-        await appendToMasterHistory(userMessageForLog, botMessageForLog);
+        const botMessageForLog = { role: 'assistant', content: aiResponseObject.message };
+        await appendToMasterHistory(latestUserMessage, botMessageForLog);
 
         sendEvent('message', { reply: aiResponseObject.message });
         sendEvent('done', { status: 'finished' });
@@ -214,12 +198,6 @@ app.get('/api/stream', async (req, res) => {
         sendEvent('error', { message: 'Failed to get a response.' });
         res.end();
     }
-});
-
-// --- NEW: Endpoint to get the full chat history ---
-app.get('/api/history', async (req, res) => {
-    const history = await readMasterHistory();
-    res.json(history);
 });
 
 // --- Server Start ---
