@@ -3,7 +3,8 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fsp } from 'fs';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+
+import { GoogleGenerativeAI } from "google/generative-ai";
 
 // --- ES Module __dirname fix ---
 const __filename = fileURLToPath(import.meta.url);
@@ -15,24 +16,15 @@ const port = process.env.PORT || 3000;
 
 // --- Gemini Initialization ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // --- Constants ---
 const CHATLOG_FILE = path.join(__dirname, 'chatlog.json');
-const SCHEDULE_FILE = path.join(__dirname, 'phoneSchedule.txt'); // New file for schedule
+const SCHEDULE_FILE = path.join(__dirname, 'phoneSchedule.txt');
+const PROMPT_TEMPLATE_FILE = path.join(__dirname, 'prompt_guide.txt');
 const MAX_HISTORY_TOKENS = 3000;
 const NTFY_TOPIC = 'constantin-bot-notifications-xyz123';
 const OWNER_PASSCODE = 'X37952';
-
-// --- Load System Prompt ---
-let system_prompt_template;
-try {
-    system_prompt_template = await fsp.readFile(path.join(__dirname, 'prompt_guide.txt'), 'utf8');
-    console.log("Successfully loaded prompt guide template.");
-} catch (error) {
-    console.error("CRITICAL: Could not read prompt_guide.txt.", error);
-    system_prompt_template = "You are a helpful assistant.";
-}
 
 // --- Middleware ---
 app.use(express.static(path.join(__dirname, 'public')));
@@ -40,30 +32,26 @@ app.use(express.json());
 
 // --- Helper Functions ---
 
-// NEW: Function to read the current schedule
 async function readPhoneSchedule() {
     try {
         return await fsp.readFile(SCHEDULE_FILE, 'utf8');
     } catch (error) {
-        // If file doesn't exist, return a default schedule
-        if (error.code === 'ENOENT') {
-            return "- Monday-Friday: 9:00 - 17:00 Available.";
-        }
+        if (error.code === 'ENOENT') return "No schedule has been set.";
         console.error("Error reading schedule file:", error);
         return "Schedule currently unavailable.";
     }
 }
 
-// NEW: Function to write the new schedule
-async function writePhoneSchedule(appointmentDetails) {
+async function writePhoneSchedule(newAppointment) {
     try {
-        // The 'a' flag stands for "append"
-        await fsp.appendFile(SCHEDULE_FILE, `\n- ${appointmentDetails}`, 'utf8');
+        // Append the new appointment with a newline character
+        await fsp.appendFile(SCHEDULE_FILE, `\n- ${newAppointment}`, 'utf8');
         console.log("New appointment added to schedule.");
     } catch (error) {
         console.error("Error writing schedule file:", error);
     }
 }
+
 async function contactIssuer(message) {
     const notificationTitle = `New Message via Secretary Bot`;
     console.log(`${notificationTitle}: ${message}`);
@@ -78,28 +66,22 @@ async function contactIssuer(message) {
     }
 }
 
-// --- (readMasterHistory, appendToMasterHistory, pruneHistory functions remain the same) ---
 async function readMasterHistory() {
     try {
-        await fsp.access(CHATLOG_FILE);
         const data = await fsp.readFile(CHATLOG_FILE, 'utf8');
         return JSON.parse(data);
     } catch (error) {
         if (error.code === 'ENOENT') return [];
-        console.error("Error reading chatlog.json:", error);
         return [];
     }
 }
 
 async function appendToMasterHistory(userMessage, botMessage) {
-    try {
-        const masterHistory = await readMasterHistory();
-        masterHistory.push(userMessage);
-        masterHistory.push(botMessage);
-        await fsp.writeFile(CHATLOG_FILE, JSON.stringify(masterHistory, null, 2), 'utf8');
-    } catch (error) {
-        console.error("Error writing to chatlog.json:", error);
-    }
+    let masterHistory = await readMasterHistory();
+    if (!Array.isArray(masterHistory)) masterHistory = [];
+    masterHistory.push(userMessage);
+    masterHistory.push(botMessage);
+    await fsp.writeFile(CHATLOG_FILE, JSON.stringify(masterHistory, null, 2), 'utf8');
 }
 
 function pruneHistory(history) {
@@ -111,9 +93,7 @@ function pruneHistory(history) {
         if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
             prunedHistory.unshift(message);
             totalTokens += messageTokens;
-        } else {
-            break;
-        }
+        } else break;
     }
     console.log(`History pruned to ${totalTokens} tokens.`);
     return prunedHistory;
@@ -125,9 +105,10 @@ async function getChatbotResponse(sessionHistory) {
     const combinedHistory = [...masterHistory, ...sessionHistory];
     const prunedHistory = pruneHistory(combinedHistory);
 
-    // NEW: Inject the live schedule into the prompt template
+    // --- DYNAMIC PROMPT INJECTION ---
+    const promptTemplate = await fsp.readFile(PROMPT_TEMPLATE_FILE, 'utf8');
     const currentSchedule = await readPhoneSchedule();
-    const final_system_prompt = system_prompt_template.replace('[ SCHEDULE ]', currentSchedule);
+    const finalSystemPrompt = promptTemplate.replace('[SCHEDULE_PLACEHOLDER]', currentSchedule);
 
     const geminiHistory = prunedHistory.map(msg => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
@@ -140,7 +121,7 @@ async function getChatbotResponse(sessionHistory) {
             generationConfig: { maxOutputTokens: 1024 },
         });
 
-        const result = await chat.sendMessage(final_system_prompt);
+        const result = await chat.sendMessage(finalSystemPrompt);
         const response = result.response;
         let aiResponseContent = response.text();
 
@@ -149,9 +130,7 @@ async function getChatbotResponse(sessionHistory) {
         
         if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
             const jsonString = aiResponseContent.substring(startIndex, endIndex + 1);
-            const responseObject = JSON.parse(jsonString);
-            console.log(`Gemini Action: ${responseObject.execution}`);
-            return responseObject;
+            return JSON.parse(jsonString);
         } else {
             throw new Error("No valid JSON object found in the Gemini response.");
         }
@@ -175,38 +154,34 @@ app.get('/api/stream', async (req, res) => {
 
     try {
         const sessionHistory = JSON.parse(req.query.history);
-        if (!sessionHistory || !Array.isArray(sessionHistory)) throw new Error("Invalid history format");
+        const latestUserMessage = sessionHistory[sessionHistory.length - 1];
 
         sendEvent('ack', { status: 'received' });
         sendEvent('typing', { status: true });
 
-        const latestUserMessage = sessionHistory[sessionHistory.length - 1];
+        let aiResponseObject;
 
-        // --- NEW: Passcode Check ---
+        // --- Passcode Check ---
         if (latestUserMessage.content.includes(OWNER_PASSCODE)) {
             const masterHistory = await readMasterHistory();
-            const report = `--- REPORT ---\nSchedule:\n${await readPhoneSchedule()}\n\nRecent Chat Log:\n${JSON.stringify(masterHistory.slice(-10), null, 2)}`;
-            sendEvent('message', { reply: report });
-            sendEvent('done', { status: 'finished' });
-            res.end();
-            return; // End execution here
+            const report = `--- SECRETARY REPORT ---\n\nCurrent Schedule:\n${await readPhoneSchedule()}\n\nLast 5 Chat Entries:\n${JSON.stringify(masterHistory.slice(-5), null, 2)}`;
+            
+            aiResponseObject = {
+                message: "Report sent to your device.",
+                execution: "contactIssuer",
+                parameters: { message: report }
+            };
+        } else {
+            aiResponseObject = await getChatbotResponse(sessionHistory);
         }
-
-        let aiResponseObject = await getChatbotResponse(sessionHistory);
         
-        // --- NEW: Handle commands with parameters ---
-                if (aiResponseseObject.execution === 'writePhoneSchedule') {
-            // We now look for 'appointmentDetails' instead of 'newSchedule'
-            const appointment = aiResponseObject.parameters?.appointmentDetails;
-            if (appointment) {
-                // Call the modified function to append the new appointment
-                await writePhoneSchedule(appointment);
-            }
+        // --- Handle Execution Commands ---
+        if (aiResponseObject.execution === 'writePhoneSchedule') {
+            const newAppointment = aiResponseObject.parameters?.newAppointment;
+            if (newAppointment) await writePhoneSchedule(newAppointment);
         } else if (aiResponseObject.execution === 'contactIssuer') {
             const message = aiResponseObject.parameters?.message;
-            if (message) {
-                await contactIssuer(message);
-            }
+            if (message) await contactIssuer(message);
         }
 
         const botMessageForLog = { role: 'assistant', content: aiResponseObject.message };
