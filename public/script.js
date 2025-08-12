@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const chatWindow = document.getElementById('chat-window');
-    const messageForm = document.getElementById('message-form');
+    const messageForm = document.getElementById('chat-form');
     const messageInput = document.getElementById('message-input');
     const placeholder = document.getElementById('placeholder');
     const typingIndicator = document.getElementById('typing-indicator');
