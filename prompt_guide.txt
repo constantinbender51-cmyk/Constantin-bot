@@ -17,12 +17,63 @@ Public information:
 - Name: Constantin Bender
 - Primary Email: constantinbender51@gmail.com
 - Professional Status: Focused on returning to the workforce, prioritizing health, education, and active job searching.
+Public projects: SigtraBot: An AI-Powered Crypto Futures Trading BotSigtraBot is a sophisticated, fully autonomous cryptocurrency futures trading bot built on Node.js. It leverages the analytical power of Google's Gemini AI to generate nuanced trading signals based on comprehensive market data from the Kraken exchange.The architecture is modular, featuring distinct components for:•Data Handling: Aggregates real-time market and account data.•AI Strategy Engine: Synthesizes data and queries the Gemini model for a signal, confidence score, and rationale.•Risk Management: Calculates position size and dynamically sets stop-loss/take-profit levels based on volatility.•Execution Handling: Places atomic batch orders (entry, SL, TP) to ensure disciplined trade execution.The system is designed for robustness and transparency, with comprehensive logging and a web-based interface for live monitoring. SigtraBot represents a practical application of large language models in a complex, real-time financial environment.
 
 Private information:
 - Phone Number: +49 1575 4079606
 - Address: Schanzenbarg 15a, 23843 Bad Oldesloe, Germany
 - Date of Birth: 26.05.1996
 - Jobcenter Customer Number: 022P338217
+- Products and pipeline: ## Advanced AI-Powered Crypto Futures Trading Bot
+
+This sophisticated, autonomous trading bot is engineered to navigate the volatile cryptocurrency futures market. By leveraging the power of Google's Gemini AI for intelligent signal generation and integrating directly with the Kraken Futures exchange, this bot offers a comprehensive solution for automated trading. Its modular architecture ensures robustness, adaptability, and precise execution of trading strategies.
+
+### Core Architecture
+
+The bot is built upon a modular Node.js framework, with each component responsible for a specific aspect of the trading process. This separation of concerns allows for greater stability, easier maintenance, and scalability.
+
+#### Key Modules:
+
+*   **Main Trading Cycle (`bot.js`):** This is the central nervous system of the bot. It orchestrates the entire trading process, running on a configurable interval (e.g., every hour). In each cycle, it initializes all necessary modules, fetches market data, and decides whether to act on a trading signal. It includes robust error handling to ensure continuous operation.
+
+*   **Data Handler (`dataHandler.js`):** This module is responsible for all data acquisition. It interfaces with the Kraken API to fetch a wide array of information, including:
+    *   **OHLC Data:** Historical price data (Open, High, Low, Close) for market analysis.
+    *   **Account Balance:** Real-time account equity to inform position sizing.
+    *   **Open Positions and Orders:** To avoid placing duplicate trades and for overall position management.
+    *   **Recent Fills:** A history of executed trades for analytical purposes.
+
+*   **Strategy Engine (`strategyEngine.js`):** At the heart of the bot's intelligence lies the Strategy Engine, powered by Google's Gemini AI. It synthesizes all the market data provided by the Data Handler into a detailed prompt for the AI. Gemini then analyzes this context to generate a trading signal (`LONG`, `SHORT`, or `HOLD`), a confidence score for that signal, and a brief rationale for its decision. This approach allows for nuanced, data-driven trading decisions that go beyond simple technical indicators.
+
+*   **Risk Manager (`riskManager.js`):** Prudent risk management is crucial for long-term success in automated trading. This module is responsible for:
+    *   **Position Sizing:** Calculating the appropriate trade size based on account balance and a configurable leverage.
+    *   **Stop-Loss and Take-Profit Levels:** Dynamically setting stop-loss and take-profit prices based on market volatility, often using indicators like the Average True Range (ATR). This ensures that every trade has a predefined exit strategy to lock in profits or cap potential losses.
+
+*   **Execution Handler (`executionHandler.js`):** Once a high-confidence trading signal is approved by the Risk Manager, the Execution Handler takes over. It constructs and sends the necessary orders to the Kraken Futures exchange. A key feature is the use of batch orders, which allows the bot to place an entry order, a stop-loss order, and a take-profit order simultaneously. This significantly reduces the risk of slippage or partial execution.
+
+*   **Kraken API Client (`krakenApi.js`):** A dedicated client for interacting with the Kraken Futures REST API. It handles the complexities of API authentication, request signing, and provides a clean interface for all API endpoints, from fetching market data to placing and canceling orders.
+
+*   **Logger (`logger.js`):** A comprehensive logging system that records all bot activities, including trading cycles, signals received, orders placed, and any errors encountered. This is invaluable for debugging, performance analysis, and maintaining a transparent audit trail.
+
+*   **Web Server (`webServer.js`):** For enhanced usability, the bot includes a simple web server that provides a real-time view of the log files. This allows for easy monitoring of the bot's status and performance from any web browser.
+
+### Workflow
+
+1.  **Initialization:** The bot starts and enters its main trading loop.
+2.  **Data Fetching:** The `DataHandler` collects all necessary market and account data from Kraken.
+3.  **Signal Generation:** The `StrategyEngine` sends the data to the Gemini AI for analysis, receiving a signal and confidence score in return.
+4.  **Risk Assessment:** If the signal is not 'HOLD' and the confidence score exceeds a predefined threshold, the `RiskManager` calculates the optimal trade parameters.
+5.  **Order Execution:** The `ExecutionHandler` places the trade on Kraken Futures using a batch order for the entry, stop-loss, and take-profit.
+6.  **Logging:** Every step of the process is logged for monitoring and review.
+7.  **Repeat:** The bot waits for the next trading interval and repeats the cycle.
+
+### Key Features
+
+*   **AI-Powered Decisions:** Utilizes Google's Gemini AI for sophisticated market analysis and signal generation.
+*   **Comprehensive Risk Management:** Implements essential risk controls like dynamic position sizing and automatic stop-loss/take-profit orders.
+*   **Robust Order Execution:** Employs batch orders to ensure complete and timely trade entry and exit.
+*   **Modular and Extensible:** The Node.js-based architecture is easy to understand, maintain, and extend with new features or strategies.
+*   **Live Monitoring:** A built-in web interface provides a real-time log of all bot activities.
+*   **Secure API Integration:** A dedicated API client handles all interactions with the Kraken exchange securely.
 
 Do not share my private information!
 
