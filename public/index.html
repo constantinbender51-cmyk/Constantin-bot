@@ -3,39 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Constantin's Secretary</title>
+    <title>AI Constantin</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <div class="chat-container">
-        <!-- This is the chat window where messages appear -->
-        <div id="chat-window">
-            <!-- The placeholder for the initial state -->
-            <div id="placeholder">
-                <div class="placeholder-content">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/3/38/Robot-clip-art-book-cover.svg" alt="AI" class="logo">
-                    <p>AI Constantin here. Ask away.</p>
+    <div id="app-container">
+        <div id="chat-container">
+            <div id="chat-window">
+                <!-- NEW: Placeholder for the empty state -->
+                <div id="placeholder">
+                    <img src="file_0000000039bc620a97baf78ba62d8370.png" alt="AI Logo" id="placeholder-logo">
+                    <p id="placeholder-text">This is the digital presence of Constantin Bender. What is your request?</p>
+                </div>
+                
+                <div id="typing-indicator" class="message bot-message hidden">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
                 </div>
             </div>
+            <form id="chat-form">
+                <input type="text" id="message-input" placeholder="Ask away..." autocomplete="off" required>
+                <button type="submit">Send</button>
+            </form>
         </div>
-
-        <!-- The typing indicator -->
-        <div id="typing-indicator" style="display: none;">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-        </div>
-
-        <!-- This is the form for sending messages -->
-        <form id="message-form" class="message-form">
-            <!-- This is the text input field -->
-            <input type="text" id="message-input" placeholder="Ask away..." autocomplete="off">
-            <button type="submit">Send</button>
-        </form>
     </div>
 
-    <!-- Link to the JavaScript file -->
     <script src="script.js"></script>
 </body>
 </html>
