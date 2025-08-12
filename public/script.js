@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageForm = document.getElementById('chat-form'); // Correctly targets your form ID
     const messageInput = document.getElementById('message-input');
     const placeholder = document.getElementById('placeholder');
-    const typingIndicator = document.getElementById('typing-indicator');
+    const typingIndicator = document.getElementById('typing-indicator'); // Assuming this exists and is correctly hidden/shown
 
     // --- State ---
     let isNewSession = true;
@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (placeholder) placeholder.style.display = 'none';
                 history.forEach(msg => {
                     if (msg.content !== '--- NEW SESSION ---') {
+                        // Use the correct addMessage function for historical messages
                         addMessage(msg.content, msg.role === 'user' ? 'user' : 'bot');
                     }
                 });
@@ -37,7 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- YOUR ORIGINAL, AESTHETICALLY CORRECT addMessage FUNCTION ---
+    // --- YOUR PREFERRED addMessage FUNCTION, ADAPTED ---
+    // This function now correctly handles the class names and insertion order.
     const addMessage = (text, sender, messageId = null) => {
         const messageElement = document.createElement('div');
         // Use the 'sender' variable to set the correct class name
@@ -46,20 +48,21 @@ document.addEventListener('DOMContentLoaded', () => {
             messageElement.id = messageId;
         }
 
-        const bubble = document.createElement('div');
-        bubble.classList.add('bubble');
+        const bubble = document.createElement('div'); // Create a bubble for the text
+        bubble.classList.add('bubble'); // Add bubble class
         bubble.textContent = text;
+        messageElement.appendChild(bubble); // Append bubble to message element
 
         if (sender === 'user') {
-            const checkmark = document.createElement('span');
+            const checkmark = document.createElement('span'); // Use span for checkmark
             checkmark.classList.add('checkmark');
             checkmark.innerHTML = '&#10003;'; // Checkmark symbol
-            bubble.appendChild(checkmark);
+            bubble.appendChild(checkmark); // Append checkmark inside the bubble
         }
 
-        messageElement.appendChild(bubble);
         // Insert the new message BEFORE the typing indicator
-        chatWindow.insertBefore(messageElement, typingIndicator);
+        // This ensures messages appear above the indicator, and the indicator stays at the bottom.
+        chatWindow.insertBefore(messageElement, typingIndicator); 
         chatWindow.scrollTop = chatWindow.scrollHeight; // Auto-scroll
     };
 
@@ -71,9 +74,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (placeholder) placeholder.style.display = 'none';
         
         const messageId = `msg-${Date.now()}`;
-        addMessage(messageText, 'user', messageId);
-        messageInput.value = '';
+        addMessage(messageText, 'user', messageId); // Add user message to UI
+        messageInput.value = ''; // Clear input field
         
+        // Show typing indicator
         if (typingIndicator) typingIndicator.classList.remove('hidden');
 
         const queryParams = new URLSearchParams({
@@ -81,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isNewSession: isNewSession
         }).toString();
 
-        isNewSession = false;
+        isNewSession = false; // After the first message, it's no longer a new session
 
         const eventSource = new EventSource(`/api/stream?${queryParams}`);
 
@@ -97,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typingIndicator) typingIndicator.classList.add('hidden');
             try {
                 const data = JSON.parse(event.data);
-                addMessage(data.reply, 'bot');
+                addMessage(data.reply, 'bot'); // Add bot's reply to UI
             } catch (err) {
                 console.error("Error parsing message data:", err);
             }
