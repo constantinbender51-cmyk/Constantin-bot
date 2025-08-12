@@ -118,4 +118,71 @@ document.addEventListener('DOMContentLoaded', () => {
         chatWindow.scrollTop = chatWindow.scrollHeight;
         return className === 'user-message' ? checkmark : messageElement;
     }
+    const loadHistory = async () => {
+        try {
+            const response = await fetch('/api/history');
+            if (!response.ok) return;
+            const history = await response.json();
+
+            if (history && Array.isArray(history) && history.length > 0) {
+                if (placeholder) placeholder.style.display = 'none';
+                
+                // Process the history array in the correct order.
+                for (const msg of history) {
+                    if (msg.content !== '--- NEW SESSION ---') {
+                        addMessageToUI(msg.content, msg.role === 'user' ? 'user-message' : 'bot-message');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load history:', error);
+        }
+    };
+    chatForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const userMessage = messageInput.value.trim();
+        if (userMessage === '') return;
+
+        if (placeholder && isNewSession) {
+            placeholder.style.display = 'none';
+        }
+
+        const messageId = `msg-${Date.now()}`;
+        const checkmarkElement = addMessageToUI(userMessage, 'user-message', messageId);
+        
+        messageInput.value = '';
+
+        typingIndicator.classList.remove('hidden');
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        const queryParams = new URLSearchParams({
+            message: userMessage,
+            isNewSession: isNewSession
+        }).toString();
+        
+        isNewSession = false;
+
+        const eventSource = new EventSource(`/api/stream?${queryParams}`);
+
+        eventSource.addEventListener('ack', (e) => {
+            if (checkmarkElement) checkmarkElement.classList.add('visible');
+        });
+
+        eventSource.addEventListener('message', (e) => {
+            const data = JSON.parse(e.data);
+            addMessageToUI(data.reply, 'bot-message');
+        });
+
+        eventSource.addEventListener('done', (e) => {
+            typingIndicator.classList.add('hidden');
+            eventSource.close();
+        });
+
+        eventSource.addEventListener('error', (e) => {
+            typingIndicator.classList.add('hidden');
+            addMessageToUI('Sorry, a connection error occurred.', 'bot-message');
+            eventSource.close();
+        });
+    });
+    loadHistory();
 });
