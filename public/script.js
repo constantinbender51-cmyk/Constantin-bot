@@ -1,3 +1,4 @@
+// This is the version that works aesthetically, but has no long-term memory.
 document.addEventListener('DOMContentLoaded', () => {
     const chatWindow = document.getElementById('chat-window');
     const chatForm = document.getElementById('chat-form');
@@ -5,34 +6,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const placeholder = document.getElementById('placeholder');
     const typingIndicator = document.getElementById('typing-indicator');
 
-    let conversationHistory = [];
-    let hasStarted = false;
+    // This will now only hold the history for the CURRENT session.
+    let conversationHistory = []; 
 
     chatForm.addEventListener('submit', (event) => {
         event.preventDefault();
         const userMessage = messageInput.value.trim();
         if (userMessage === '') return;
 
-        if (!hasStarted) {
-            if (placeholder) placeholder.classList.add('hidden-placeholder');
-            hasStarted = true;
-        }
+        if (placeholder) placeholder.style.display = 'none';
 
         const checkmarkElement = addMessageToUI(userMessage, 'user-message');
         
-        // --- IMPORTANT: Update history BEFORE making the request ---
-        // This was a subtle but critical bug. We add the user's message to the main
-        // history immediately, so it's ready for the next turn.
-        const tempHistoryForAPI = [...conversationHistory, { role: 'user', content: userMessage }];
+        // Add user message to our temporary session history
+        conversationHistory.push({ role: 'user', content: userMessage });
         
         messageInput.value = '';
 
-        const historyParam = encodeURIComponent(JSON.stringify(tempHistoryForAPI));
-        const eventSource = new EventSource(`/api/stream?history=${historyParam}`);
-
-        // --- Show typing indicator immediately ---
+        // Show typing indicator
         typingIndicator.classList.remove('hidden');
         chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        // --- We will fix this part in the next step ---
+        // For now, this will just send the temporary history
+        const historyParam = encodeURIComponent(JSON.stringify(conversationHistory));
+        const eventSource = new EventSource(`/api/stream?history=${historyParam}`);
 
         eventSource.addEventListener('ack', (e) => {
             if (checkmarkElement) checkmarkElement.classList.add('visible');
@@ -41,66 +39,24 @@ document.addEventListener('DOMContentLoaded', () => {
         eventSource.addEventListener('message', (e) => {
             const data = JSON.parse(e.data);
             const botReply = data.reply;
-            const execution = data.execution;
-            const originalUserMessage = data.originalUserMessage;
-
-            // --- Update main history with the bot's reply ---
-            conversationHistory.push({ role: 'user', content: userMessage });
+            
+            // Add bot's reply to our temporary session history
             conversationHistory.push({ role: 'assistant', content: botReply });
             
-            const botMessageElement = addMessageToUI(botReply, 'bot-message');
-
-            if (execution === 'propose_relay') {
-                addRelayButton(botMessageElement, originalUserMessage);
-            }
+            addMessageToUI(botReply, 'bot-message');
         });
 
-        // --- This is the correct way to handle the end of the stream ---
         eventSource.addEventListener('done', (e) => {
             typingIndicator.classList.add('hidden');
-            eventSource.close(); // Simply close the connection.
-            console.log("Stream finished and connection closed.");
+            eventSource.close();
         });
 
         eventSource.addEventListener('error', (e) => {
             typingIndicator.classList.add('hidden');
             addMessageToUI('Sorry, a connection error occurred.', 'bot-message');
-            eventSource.close(); // Close on error to prevent retries.
-            console.error('EventSource failed:', e);
+            eventSource.close();
         });
     });
-
-    function addRelayButton(messageElement, messageToRelay) {
-        const button = document.createElement('button');
-        button.textContent = 'Confirm: Send Message';
-        button.className = 'relay-button';
-        
-        button.onclick = async () => {
-            button.disabled = true; // Disable immediately on click
-            try {
-                const response = await fetch('/api/confirm-relay', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messageToRelay: messageToRelay })
-                });
-                
-                if (response.ok) {
-                    button.textContent = '✓ Message Sent';
-                    button.classList.add('sent');
-                } else {
-                    button.textContent = 'Error - Try Again';
-                    button.disabled = false;
-                }
-            } catch (error) {
-                console.error('Failed to relay message:', error);
-                button.textContent = 'Error - Network Issue';
-                button.disabled = false;
-            }
-        };
-        
-        messageElement.appendChild(button);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
 
     function addMessageToUI(text, className) {
         const messageElement = document.createElement('div');
@@ -116,6 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         chatWindow.insertBefore(messageElement, typingIndicator);
         chatWindow.scrollTop = chatWindow.scrollHeight;
-        return className === 'user-message' ? checkmark : messageElement;
+        return checkmark;
     }
 });
