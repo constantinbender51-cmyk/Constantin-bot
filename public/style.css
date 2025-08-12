@@ -43,9 +43,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    display: flex;
-    flex-direction: column-reverse;
- 
 }
 
 /* NEW: Styles for the floating placeholder */
@@ -233,4 +230,3 @@ body {
     background-color: #28a745; /* Green for success */
     cursor: default;
 }
-
