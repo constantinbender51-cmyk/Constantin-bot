@@ -2,7 +2,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { promises as fsp } from 'fs';
+import { promises as fsp } from 'fs'; // Still needed for schedule and prompt
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -19,10 +19,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 // --- Constants ---
-const CHATLOG_FILE = path.join(__dirname, 'chatlog.json');
 const SCHEDULE_FILE = path.join(__dirname, 'phoneSchedule.txt');
 const PROMPT_TEMPLATE_FILE = path.join(__dirname, 'prompt_guide.txt');
-const MAX_HISTORY_TOKENS = 3000;
 const NTFY_TOPIC = 'constantin-bot-notifications-xyz123';
 const OWNER_PASSCODE = 'X37952';
 
@@ -30,14 +28,13 @@ const OWNER_PASSCODE = 'X37952';
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// --- Helper Functions ---
+// --- Helper Functions (Schedule and Contact are unchanged) ---
 
 async function readPhoneSchedule() {
     try {
         return await fsp.readFile(SCHEDULE_FILE, 'utf8');
     } catch (error) {
         if (error.code === 'ENOENT') return "No schedule has been set.";
-        console.error("Error reading schedule file:", error);
         return "Schedule currently unavailable.";
     }
 }
@@ -52,12 +49,10 @@ async function writePhoneSchedule(newSchedule) {
 }
 
 async function contactIssuer(message) {
-    const notificationTitle = `New Message via Secretary Bot`;
-    console.log(`${notificationTitle}: ${message}`);
     try {
         await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
             method: 'POST',
-            headers: { 'Title': notificationTitle },
+            headers: { 'Title': `New Message via Secretary Bot` },
             body: message
         });
     } catch (error) {
@@ -65,51 +60,16 @@ async function contactIssuer(message) {
     }
 }
 
-async function readMasterHistory() {
-    try {
-        const data = await fsp.readFile(CHATLOG_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        if (error.code === 'ENOENT') return [];
-        return [];
-    }
-}
-
-async function appendToMasterHistory(userMessage, botMessage) {
-    let masterHistory = await readMasterHistory();
-    if (!Array.isArray(masterHistory)) masterHistory = [];
-    masterHistory.push(userMessage);
-    masterHistory.push(botMessage);
-    await fsp.writeFile(CHATLOG_FILE, JSON.stringify(masterHistory, null, 2), 'utf8');
-}
-
-function pruneHistory(history) {
-    let totalTokens = 0;
-    const prunedHistory = [];
-    for (let i = history.length - 1; i >= 0; i--) {
-        const message = history[i];
-        const messageTokens = Math.ceil((message.content || '').length / 4);
-        if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
-            prunedHistory.unshift(message);
-            totalTokens += messageTokens;
-        } else break;
-    }
-    console.log(`History pruned to ${totalTokens} tokens.`);
-    return prunedHistory;
-}
-
-// --- Main Chatbot Logic ---
+// --- Main Chatbot Logic (SIMPLIFIED) ---
+// This function now ONLY uses the history from the current session.
 async function getChatbotResponse(sessionHistory) {
-    const masterHistory = await readMasterHistory();
-    const combinedHistory = [...masterHistory, ...sessionHistory];
-    const prunedHistory = pruneHistory(combinedHistory);
-
     // --- DYNAMIC PROMPT INJECTION ---
     const promptTemplate = await fsp.readFile(PROMPT_TEMPLATE_FILE, 'utf8');
     const currentSchedule = await readPhoneSchedule();
     const finalSystemPrompt = promptTemplate.replace('[SCHEDULE_PLACEHOLDER]', currentSchedule);
 
-    const geminiHistory = prunedHistory.map(msg => ({
+    // Convert the session history to the format Gemini expects.
+    const geminiHistory = sessionHistory.map(msg => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: msg.content }]
     }));
@@ -120,10 +80,12 @@ async function getChatbotResponse(sessionHistory) {
             generationConfig: { maxOutputTokens: 1024 },
         });
 
+        // We send the system prompt as a new message in the chat.
         const result = await chat.sendMessage(finalSystemPrompt);
         const response = result.response;
         let aiResponseContent = response.text();
 
+        // Extract the JSON object from the response.
         const startIndex = aiResponseContent.indexOf('{');
         const endIndex = aiResponseContent.lastIndexOf('}');
         
@@ -131,7 +93,9 @@ async function getChatbotResponse(sessionHistory) {
             const jsonString = aiResponseContent.substring(startIndex, endIndex + 1);
             return JSON.parse(jsonString);
         } else {
-            throw new Error("No valid JSON object found in the Gemini response" + JSON.stringify(response, null, 2));
+            // If no JSON is found, return a graceful error message.
+            console.error("No valid JSON object found in the Gemini response:", aiResponseContent);
+            return { message: aiResponseContent, execution: 'none' };
         }
     } catch (error) {
         console.error("Error calling Gemini API:", error);
@@ -152,7 +116,11 @@ app.get('/api/stream', async (req, res) => {
     };
 
     try {
+        // It expects a 'history' parameter from the frontend.
         const sessionHistory = JSON.parse(req.query.history);
+        if (!sessionHistory || !Array.isArray(sessionHistory)) {
+            throw new Error("Invalid history format from frontend.");
+        }
         const latestUserMessage = sessionHistory[sessionHistory.length - 1];
 
         sendEvent('ack', { status: 'received' });
@@ -162,24 +130,21 @@ app.get('/api/stream', async (req, res) => {
 
         // --- Passcode Check ---
         if (latestUserMessage.content.includes(OWNER_PASSCODE)) {
-            const masterHistory = await readMasterHistory();
-            const report = `--- SECRETARY REPORT ---\n\nCurrent Schedule:\n${await readPhoneSchedule()}\n\nLast 5 Chat Entries:\n${JSON.stringify(masterHistory.slice(-5), null, 2)}`;
-            
+            const report = `--- SECRETARY REPORT ---\n\nCurrent Schedule:\n${await readPhoneSchedule()}`;
             aiResponseObject = {
                 message: "Report sent to your device.",
                 execution: "contactIssuer",
                 parameters: { message: report }
             };
         } else {
+            // Get response based ONLY on the current session's history.
             aiResponseObject = await getChatbotResponse(sessionHistory);
         }
         
         // --- Handle Execution Commands ---
         if (aiResponseObject.execution === 'writePhoneSchedule') {
-            // We now look for 'newSchedule' which contains the ENTIRE new schedule
             const scheduleContent = aiResponseObject.parameters?.newSchedule;
             if (scheduleContent) {
-                // Call the modified function to overwrite the schedule file
                 await writePhoneSchedule(scheduleContent);
             }
         } else if (aiResponseObject.execution === 'contactIssuer') {
@@ -187,9 +152,8 @@ app.get('/api/stream', async (req, res) => {
             if (message) await contactIssuer(message);
         }
 
-        const botMessageForLog = { role: 'assistant', content: aiResponseObject.message };
-        await appendToMasterHistory(latestUserMessage, botMessageForLog);
-
+        // NO MORE WRITING TO MASTER HISTORY.
+        
         sendEvent('message', { reply: aiResponseObject.message });
         sendEvent('done', { status: 'finished' });
         res.end();
