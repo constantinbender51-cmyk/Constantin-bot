@@ -1,23 +1,46 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Element References ---
+    // --- Element References from your code ---
     const chatWindow = document.getElementById('chat-window');
-    const messageForm = document.getElementById('chat-form'); // Correctly targets your form ID
+    const chatForm = document.getElementById('chat-form'); // Using your ID
     const messageInput = document.getElementById('message-input');
     const placeholder = document.getElementById('placeholder');
-    const typingIndicator = document.getElementById('typing-indicator'); // Assuming this exists and is correctly hidden/shown
+    const typingIndicator = document.getElementById('typing-indicator');
 
-    // --- State ---
+    // --- State from the new logic ---
     let isNewSession = true;
 
     // --- Safety Check ---
-    if (!chatWindow || !messageForm || !messageInput) {
+    if (!chatWindow || !chatForm || !messageInput || !typingIndicator) {
         console.error("Essential chat elements are missing from the HTML. Aborting script.");
         alert("Error: Chat interface is not loaded correctly.");
         return;
     }
 
-    // --- Functions ---
+    // --- YOUR addMessageToUI function (UNTOUCHED) ---
+    function addMessageToUI(text, className, messageId = null) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message', className);
+        if (messageId) {
+            messageElement.id = messageId;
+        }
 
+        const textNode = document.createElement('span');
+        textNode.textContent = text;
+        messageElement.appendChild(textNode);
+
+        let checkmark = null;
+        if (className === 'user-message') {
+            checkmark = document.createElement('div');
+            checkmark.classList.add('checkmark');
+            messageElement.appendChild(checkmark);
+        }
+
+        chatWindow.insertBefore(messageElement, typingIndicator);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        return checkmark; // Return only the checkmark element for user messages
+    }
+
+    // --- NEW function to load persistent history ---
     const loadHistory = async () => {
         try {
             const response = await fetch('/api/history');
@@ -28,8 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (placeholder) placeholder.style.display = 'none';
                 history.forEach(msg => {
                     if (msg.content !== '--- NEW SESSION ---') {
-                        // Use the correct addMessage function for historical messages
-                        addMessage(msg.content, msg.role === 'user' ? 'user' : 'bot');
+                        addMessageToUI(msg.content, msg.role === 'user' ? 'user-message' : 'bot-message');
                     }
                 });
             }
@@ -38,88 +60,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- YOUR PREFERRED addMessage FUNCTION, ADAPTED ---
-    // This function now correctly handles the class names and insertion order.
-    const addMessage = (text, sender, messageId = null) => {
-        const messageElement = document.createElement('div');
-        // Use the 'sender' variable to set the correct class name
-        messageElement.classList.add('message', `${sender}-message`); 
-        if (messageId) {
-            messageElement.id = messageId;
-        }
-
-        const bubble = document.createElement('div'); // Create a bubble for the text
-        bubble.classList.add('bubble'); // Add bubble class
-        bubble.textContent = text;
-        messageElement.appendChild(bubble); // Append bubble to message element
-
-        if (sender === 'user') {
-            const checkmark = document.createElement('span'); // Use span for checkmark
-            checkmark.classList.add('checkmark');
-            checkmark.innerHTML = '&#10003;'; // Checkmark symbol
-            bubble.appendChild(checkmark); // Append checkmark inside the bubble
-        }
-
-        // Insert the new message BEFORE the typing indicator
-        // This ensures messages appear above the indicator, and the indicator stays at the bottom.
-        chatWindow.insertBefore(messageElement, typingIndicator); 
-        chatWindow.scrollTop = chatWindow.scrollHeight; // Auto-scroll
-    };
-
-    const handleFormSubmit = (e) => {
-        e.preventDefault();
-        const messageText = messageInput.value.trim();
-        if (!messageText) return;
+    // --- MERGED Event Listener ---
+    chatForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const userMessage = messageInput.value.trim();
+        if (userMessage === '') return;
 
         if (placeholder) placeholder.style.display = 'none';
-        
-        const messageId = `msg-${Date.now()}`;
-        addMessage(messageText, 'user', messageId); // Add user message to UI
-        messageInput.value = ''; // Clear input field
-        
-        // Show typing indicator
-        if (typingIndicator) typingIndicator.classList.remove('hidden');
 
+        const messageId = `msg-${Date.now()}`;
+        const checkmarkElement = addMessageToUI(userMessage, 'user-message', messageId);
+        
+        messageInput.value = '';
+
+        // Show typing indicator immediately
+        typingIndicator.classList.remove('hidden');
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        // --- Use the new backend communication method ---
         const queryParams = new URLSearchParams({
-            message: messageText,
+            message: userMessage,
             isNewSession: isNewSession
         }).toString();
-
-        isNewSession = false; // After the first message, it's no longer a new session
+        
+        isNewSession = false; // It's no longer a new session after the first message
 
         const eventSource = new EventSource(`/api/stream?${queryParams}`);
 
-        eventSource.addEventListener('ack', (event) => {
-            const sentMessage = document.getElementById(messageId);
-            if (sentMessage) {
-                const checkmark = sentMessage.querySelector('.checkmark');
-                if (checkmark) checkmark.classList.add('visible');
-            }
+        eventSource.addEventListener('ack', (e) => {
+            // Use the checkmarkElement returned by your function
+            if (checkmarkElement) checkmarkElement.classList.add('visible');
         });
 
-        eventSource.addEventListener('message', (event) => {
-            if (typingIndicator) typingIndicator.classList.add('hidden');
+        eventSource.addEventListener('message', (e) => {
             try {
-                const data = JSON.parse(event.data);
-                addMessage(data.reply, 'bot'); // Add bot's reply to UI
+                const data = JSON.parse(e.data);
+                addMessageToUI(data.reply, 'bot-message');
             } catch (err) {
                 console.error("Error parsing message data:", err);
             }
         });
 
-        eventSource.addEventListener('done', () => {
+        eventSource.addEventListener('done', (e) => {
+            typingIndicator.classList.add('hidden');
             eventSource.close();
         });
 
-        eventSource.onerror = () => {
-            if (typingIndicator) typingIndicator.classList.add('hidden');
-            addMessage("Sorry, a connection error occurred.", 'bot');
+        eventSource.addEventListener('error', (e) => {
+            typingIndicator.classList.add('hidden');
+            addMessageToUI('Sorry, a connection error occurred.', 'bot-message');
             eventSource.close();
-        };
-    };
-
-    // --- Event Listeners ---
-    messageForm.addEventListener('submit', handleFormSubmit);
+        });
+    });
 
     // --- Initial Load ---
     loadHistory();
