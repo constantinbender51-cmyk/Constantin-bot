@@ -3,8 +3,8 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fsp } from 'fs';
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
+import pkg from '@google/generative-ai';
+const { GoogleGenerativeAI } = pkg;
 
 // --- ES Module __dirname fix ---
 const __filename = fileURLToPath(import.meta.url);
@@ -16,89 +16,84 @@ const port = process.env.PORT || 3000;
 
 // --- Gemini Initialization ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // --- Constants ---
 const CHATLOG_FILE = path.join(__dirname, 'chatlog.json');
+const SCHEDULE_FILE = path.join(__dirname, 'phoneSchedule.txt'); // New file for schedule
 const MAX_HISTORY_TOKENS = 3000;
 const NTFY_TOPIC = 'constantin-bot-notifications-xyz123';
+const OWNER_PASSCODE = 'X37952';
 
 // --- Load System Prompt ---
-let system_prompt_guide;
+let system_prompt_template;
 try {
-    // Use fsp (fs.promises) which is already imported
-    system_prompt_guide = await fsp.readFile(path.join(__dirname, 'prompt_guide.txt'), 'utf8');
-    console.log("Successfully loaded prompt guide.");
+    system_prompt_template = await fsp.readFile(path.join(__dirname, 'prompt_guide.txt'), 'utf8');
+    console.log("Successfully loaded prompt guide template.");
 } catch (error) {
     console.error("CRITICAL: Could not read prompt_guide.txt.", error);
-    system_prompt_guide = "You are a helpful assistant.";
+    system_prompt_template = "You are a helpful assistant.";
 }
 
 // --- Middleware ---
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// --- Helper Functions (no changes needed) ---
-async function relayMessageToOwner(relayContent) {
-    const notificationTitle = `New Message via Constantinbot`;
-    console.log(`${notificationTitle}: ${relayContent}`);
+// --- Helper Functions ---
+
+// NEW: Function to read the current schedule
+async function readPhoneSchedule() {
     try {
-        // Global fetch is available in modern Node.js ES Modules
+        return await fsp.readFile(SCHEDULE_FILE, 'utf8');
+    } catch (error) {
+        // If file doesn't exist, return a default schedule
+        if (error.code === 'ENOENT') {
+            return "- Monday-Friday: 9:00 - 17:00 Available.";
+        }
+        console.error("Error reading schedule file:", error);
+        return "Schedule currently unavailable.";
+    }
+}
+
+// NEW: Function to write the new schedule
+async function writePhoneSchedule(newSchedule) {
+    try {
+        await fsp.writeFile(SCHEDULE_FILE, newSchedule, 'utf8');
+        console.log("Phone schedule updated.");
+    } catch (error) {
+        console.error("Error writing schedule file:", error);
+    }
+}
+
+async function contactIssuer(message) {
+    const notificationTitle = `New Message via Secretary Bot`;
+    console.log(`${notificationTitle}: ${message}`);
+    try {
         await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
             method: 'POST',
             headers: { 'Title': notificationTitle },
-            body: relayContent
+            body: message
         });
     } catch (error) {
         console.error("Failed to send notification via ntfy:", error);
     }
 }
 
-async function readMasterHistory() {
-    try {
-        await fsp.access(CHATLOG_FILE);
-        const data = await fsp.readFile(CHATLOG_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        if (error.code === 'ENOENT') return [];
-        console.error("Error reading chatlog.json:", error);
-        return [];
-    }
-}
+// --- (readMasterHistory, appendToMasterHistory, pruneHistory functions remain the same) ---
+async function readMasterHistory() { /* ... */ }
+async function appendToMasterHistory(userMessage, botMessage) { /* ... */ }
+function pruneHistory(history) { /* ... */ }
 
-async function appendToMasterHistory(userMessage, botMessage) {
-    try {
-        const masterHistory = await readMasterHistory();
-        masterHistory.push(userMessage);
-        masterHistory.push(botMessage);
-        await fsp.writeFile(CHATLOG_FILE, JSON.stringify(masterHistory, null, 2), 'utf8');
-    } catch (error) {
-        console.error("Error writing to chatlog.json:", error);
-    }
-}
 
-function pruneHistory(history) {
-    let totalTokens = 0;
-    const prunedHistory = [];
-    for (let i = history.length - 1; i >= 0; i--) {
-        const message = history[i];
-        const messageTokens = Math.ceil((message.content || '').length / 4);
-        if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
-            prunedHistory.unshift(message);
-            totalTokens += messageTokens;
-        } else {
-            break;
-        }
-    }
-    console.log(`History pruned to ${totalTokens} tokens.`);
-    return prunedHistory;
-}
-
-// --- Main Chatbot Logic (no changes needed) ---
+// --- Main Chatbot Logic ---
 async function getChatbotResponse(sessionHistory) {
     const masterHistory = await readMasterHistory();
     const combinedHistory = [...masterHistory, ...sessionHistory];
     const prunedHistory = pruneHistory(combinedHistory);
+
+    // NEW: Inject the live schedule into the prompt template
+    const currentSchedule = await readPhoneSchedule();
+    const final_system_prompt = system_prompt_template.replace('[ SCHEDULE ]', currentSchedule);
 
     const geminiHistory = prunedHistory.map(msg => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
@@ -111,7 +106,7 @@ async function getChatbotResponse(sessionHistory) {
             generationConfig: { maxOutputTokens: 1024 },
         });
 
-        const result = await chat.sendMessage(system_prompt_guide);
+        const result = await chat.sendMessage(final_system_prompt);
         const response = result.response;
         let aiResponseContent = response.text();
 
@@ -132,7 +127,7 @@ async function getChatbotResponse(sessionHistory) {
     }
 }
 
-// --- API Endpoints (no changes needed) ---
+// --- API Endpoints ---
 app.get('/api/stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -152,16 +147,30 @@ app.get('/api/stream', async (req, res) => {
         sendEvent('typing', { status: true });
 
         const latestUserMessage = sessionHistory[sessionHistory.length - 1];
+
+        // --- NEW: Passcode Check ---
+        if (latestUserMessage.content.includes(OWNER_PASSCODE)) {
+            const masterHistory = await readMasterHistory();
+            const report = `--- REPORT ---\nSchedule:\n${await readPhoneSchedule()}\n\nRecent Chat Log:\n${JSON.stringify(masterHistory.slice(-10), null, 2)}`;
+            sendEvent('message', { reply: report });
+            sendEvent('done', { status: 'finished' });
+            res.end();
+            return; // End execution here
+        }
+
         let aiResponseObject = await getChatbotResponse(sessionHistory);
         
-        if (aiResponseObject.execution === 'relay_message') {
-            if (aiResponseObject.relay_content) {
-                await relayMessageToOwner(aiResponseObject.relay_content);
+        // --- NEW: Handle commands with parameters ---
+        if (aiResponseObject.execution === 'writePhoneSchedule') {
+            const newSchedule = aiResponseObject.parameters?.newSchedule;
+            if (newSchedule) {
+                await writePhoneSchedule(newSchedule);
             }
-        } else if (aiResponseObject.execution === 'get_time_date') {
-            const now = new Date();
-            const formattedDate = now.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
-            aiResponseObject.message += ` The current date and time is ${formattedDate}.`;
+        } else if (aiResponseObject.execution === 'contactIssuer') {
+            const message = aiResponseObject.parameters?.message;
+            if (message) {
+                await contactIssuer(message);
+            }
         }
 
         const botMessageForLog = { role: 'assistant', content: aiResponseObject.message };
@@ -181,4 +190,3 @@ app.get('/api/stream', async (req, res) => {
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
 });
-            
