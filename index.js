@@ -131,7 +131,7 @@ async function getChatbotResponse(sessionHistory) {
             const jsonString = aiResponseContent.substring(startIndex, endIndex + 1);
             return JSON.parse(jsonString);
         } else {
-            throw new Error("No valid JSON object found in the Gemini response" + JSON.stringify(response));
+            throw new Error("No valid JSON object found in the Gemini response" + JSON.stringify(response, null, 2));
         }
     } catch (error) {
         console.error("Error calling Gemini API:", error);
