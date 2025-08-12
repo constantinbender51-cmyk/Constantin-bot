@@ -15,7 +15,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // --- Gemini Initialization ---
-const genAI = new GoogleGenerativeAI({});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 // --- Constants ---
