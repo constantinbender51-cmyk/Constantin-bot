@@ -55,15 +55,15 @@ async function readPhoneSchedule() {
 }
 
 // NEW: Function to write the new schedule
-async function writePhoneSchedule(newSchedule) {
+async function writePhoneSchedule(appointmentDetails) {
     try {
-        await fsp.writeFile(SCHEDULE_FILE, newSchedule, 'utf8');
-        console.log("Phone schedule updated.");
+        // The 'a' flag stands for "append"
+        await fsp.appendFile(SCHEDULE_FILE, `\n- ${appointmentDetails}`, 'utf8');
+        console.log("New appointment added to schedule.");
     } catch (error) {
         console.error("Error writing schedule file:", error);
     }
 }
-
 async function contactIssuer(message) {
     const notificationTitle = `New Message via Secretary Bot`;
     console.log(`${notificationTitle}: ${message}`);
@@ -195,10 +195,12 @@ app.get('/api/stream', async (req, res) => {
         let aiResponseObject = await getChatbotResponse(sessionHistory);
         
         // --- NEW: Handle commands with parameters ---
-        if (aiResponseObject.execution === 'writePhoneSchedule') {
-            const newSchedule = aiResponseObject.parameters?.newSchedule;
-            if (newSchedule) {
-                await writePhoneSchedule(newSchedule);
+                if (aiResponseseObject.execution === 'writePhoneSchedule') {
+            // We now look for 'appointmentDetails' instead of 'newSchedule'
+            const appointment = aiResponseObject.parameters?.appointmentDetails;
+            if (appointment) {
+                // Call the modified function to append the new appointment
+                await writePhoneSchedule(appointment);
             }
         } else if (aiResponseObject.execution === 'contactIssuer') {
             const message = aiResponseObject.parameters?.message;
