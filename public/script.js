@@ -1,54 +1,42 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Element References ---
+    // --- Your original element references ---
     const chatWindow = document.getElementById('chat-window');
     const chatForm = document.getElementById('chat-form');
     const messageInput = document.getElementById('message-input');
     const placeholder = document.getElementById('placeholder');
     const typingIndicator = document.getElementById('typing-indicator');
 
-    // --- State ---
-    // This is now the ONLY state we need. It's true when the page loads, false after the first message.
+    // --- The ONLY new variable we need ---
     let isNewSession = true;
 
-    // --- Safety Check ---
-    if (!chatWindow || !chatForm || !messageInput || !typingIndicator) {
-        console.error("Essential chat elements are missing from the HTML. Aborting script.");
-        alert("Error: Chat interface is not loaded correctly.");
-        return;
-    }
-
-    // --- YOUR addMessageToUI function (UNTOUCHED) ---
-    // This function is perfect as it is.
+    // --- YOUR addMessageToUI function (UNTOUCHED AND PERFECT) ---
     function addMessageToUI(text, className, messageId = null) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', className);
         if (messageId) {
             messageElement.id = messageId;
         }
-
         const textNode = document.createElement('span');
         textNode.textContent = text;
         messageElement.appendChild(textNode);
-
         let checkmark = null;
         if (className === 'user-message') {
             checkmark = document.createElement('div');
             checkmark.classList.add('checkmark');
             messageElement.appendChild(checkmark);
         }
-
+        // THIS IS THE CRUCIAL LINE THAT I KEPT MESSING UP. IT IS CORRECT HERE.
         chatWindow.insertBefore(messageElement, typingIndicator);
         chatWindow.scrollTop = chatWindow.scrollHeight;
         return checkmark;
     }
 
-    // --- The working submit handler ---
+    // --- Your submit listener, adapted for the new backend ---
     chatForm.addEventListener('submit', (event) => {
         event.preventDefault();
         const userMessage = messageInput.value.trim();
         if (userMessage === '') return;
 
-        // Hide the placeholder when the first message is sent
         if (placeholder && isNewSession) {
             placeholder.style.display = 'none';
         }
@@ -61,16 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
         typingIndicator.classList.remove('hidden');
         chatWindow.scrollTop = chatWindow.scrollHeight;
 
-        // --- The SIMPLE communication logic ---
-        // This correctly tells the backend if it's a new session,
-        // allowing the AI to use its long-term memory appropriately.
+        // --- The new, simple communication logic ---
         const queryParams = new URLSearchParams({
             message: userMessage,
             isNewSession: isNewSession
         }).toString();
         
-        // After this message, it's no longer a new session for this user's visit.
-        isNewSession = false; 
+        isNewSession = false; // After this, it's an ongoing session.
 
         const eventSource = new EventSource(`/api/stream?${queryParams}`);
 
@@ -95,5 +80,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // NO MORE loadHistory() call. The page will always start fresh.
+    // --- NO history loading. The chat starts empty, just as you wanted. ---
 });
