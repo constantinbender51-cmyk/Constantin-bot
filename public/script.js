@@ -7,15 +7,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let isNewSession = true; // Flag to track if this is the first message of the session
 
-    // --- NEW: Function to load history on page start ---
+    // Function to load history on page start
     const loadHistory = async () => {
         try {
             const response = await fetch('/api/history');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const history = await response.json();
-            if (history.length > 0) {
+
+            if (history && history.length > 0) {
                 placeholder.style.display = 'none';
                 history.forEach(msg => {
-                    // Don't display the system-level session markers
+                    // Don't display the system-level session markers to the user
                     if (msg.content !== '--- NEW SESSION ---') {
                         addMessage(msg.content, msg.role === 'user' ? 'user' : 'bot');
                     }
@@ -23,75 +25,97 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Failed to load chat history:', error);
+            // Don't show an error to the user, just start fresh.
         }
     };
 
+    // Function to add a message to the chat window
     const addMessage = (text, sender, messageId = null) => {
         const messageElement = document.createElement('div');
-        messageElement.classList.add('message', className);
-        const textNode = document.createElement('span');
-        textNode.textContent = text;
-        messageElement.appendChild(textNode);
-        let checkmark = null;
-        if (className === 'user-message') {
-            checkmark = document.createElement('div');
-            checkmark.classList.add('checkmark');
-            messageElement.appendChild(checkmark);
+        messageElement.classList.add('message', `${sender}-message`);
+        if (messageId) {
+            messageElement.id = messageId;
         }
-        chatWindow.insertBefore(messageElement, typingIndicator);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-        return className === 'user-message' ? checkmark : messageElement;
-    }// ... (addMessage function is the same) ...
+
+        const bubble = document.createElement('div');
+        bubble.classList.add('bubble');
+        bubble.textContent = text;
+
+        if (sender === 'user') {
+            const checkmark = document.createElement('span');
+            checkmark.classList.add('checkmark');
+            checkmark.innerHTML = '&#10003;'; // Checkmark symbol
+            bubble.appendChild(checkmark);
+        }
+
+        messageElement.appendChild(bubble);
+        chatWindow.appendChild(messageElement);
+        chatWindow.scrollTop = chatWindow.scrollHeight; // Auto-scroll
     };
 
+    // Event listener for the form submission
     messageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const messageText = messageInput.value.trim();
         if (!messageText) return;
 
-        placeholder.style.display = 'none';
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
+        
         const messageId = `msg-${Date.now()}`;
         addMessage(messageText, 'user', messageId);
         messageInput.value = '';
         typingIndicator.style.display = 'flex';
 
-        // --- MODIFIED: We now send the message and the flag ---
+        // We now send the message and the flag
         const queryParams = new URLSearchParams({
             message: messageText,
             isNewSession: isNewSession
         }).toString();
 
+        // After the first message, it's no longer a new session for this browser tab
+        isNewSession = false; 
+
         const eventSource = new EventSource(`/api/stream?${queryParams}`);
-        isNewSession = false; // After the first message, it's no longer a new session
 
         eventSource.addEventListener('ack', (event) => {
-            const data = JSON.parse(event.data);
-            if (data.status === 'received') {
-                const sentMessage = document.getElementById(messageId);
-                if (sentMessage) {
-                    const checkmark = sentMessage.querySelector('.checkmark');
-                    if (checkmark) checkmark.classList.add('visible');
+            try {
+                const data = JSON.parse(event.data);
+                if (data.status === 'received') {
+                    const sentMessage = document.getElementById(messageId);
+                    if (sentMessage) {
+                        const checkmark = sentMessage.querySelector('.checkmark');
+                        if (checkmark) checkmark.classList.add('visible');
+                    }
                 }
+            } catch (err) {
+                console.error("Error parsing 'ack' event:", err);
             }
         });
 
         eventSource.addEventListener('message', (event) => {
-            const data = JSON.parse(event.data);
-            typingIndicator.style.display = 'none';
-            addMessage(data.reply, 'bot');
+            try {
+                const data = JSON.parse(event.data);
+                typingIndicator.style.display = 'none';
+                addMessage(data.reply, 'bot');
+            } catch (err) {
+                console.error("Error parsing 'message' event:", err);
+            }
         });
 
         eventSource.addEventListener('done', () => {
             eventSource.close();
         });
 
-        eventSource.onerror = () => {
+        eventSource.onerror = (err) => {
+            console.error("EventSource failed:", err);
             typingIndicator.style.display = 'none';
-            addMessage("Sorry, something went wrong. Please try again.", 'bot');
+            addMessage("Sorry, I encountered a connection error. Please try again.", 'bot');
             eventSource.close();
         };
     });
 
-    // --- NEW: Load history when the page loads ---
+    // Load history when the page loads
     loadHistory();
 });
