@@ -42,11 +42,10 @@ async function readPhoneSchedule() {
     }
 }
 
-async function writePhoneSchedule(newAppointment) {
+async function writePhoneSchedule(newSchedule) {
     try {
-        // Append the new appointment with a newline character
-        await fsp.appendFile(SCHEDULE_FILE, `\n- ${newAppointment}`, 'utf8');
-        console.log("New appointment added to schedule.");
+        await fsp.writeFile(SCHEDULE_FILE, newSchedule, 'utf8');
+        console.log("Phone schedule has been completely updated.");
     } catch (error) {
         console.error("Error writing schedule file:", error);
     }
@@ -177,8 +176,12 @@ app.get('/api/stream', async (req, res) => {
         
         // --- Handle Execution Commands ---
         if (aiResponseObject.execution === 'writePhoneSchedule') {
-            const newAppointment = aiResponseObject.parameters?.newAppointment;
-            if (newAppointment) await writePhoneSchedule(newAppointment);
+            // We now look for 'newSchedule' which contains the ENTIRE new schedule
+            const scheduleContent = aiResponseObject.parameters?.newSchedule;
+            if (scheduleContent) {
+                // Call the modified function to overwrite the schedule file
+                await writePhoneSchedule(scheduleContent);
+            }
         } else if (aiResponseObject.execution === 'contactIssuer') {
             const message = aiResponseObject.parameters?.message;
             if (message) await contactIssuer(message);
