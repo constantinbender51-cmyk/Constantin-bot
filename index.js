@@ -84,7 +84,7 @@ async function getChatbotResponse(sessionHistory) {
         const result = await chat.sendMessage(finalSystemPrompt);
         const response = result.response;
         
-        console.log(JSON.stringify(response, null, 2);
+        console.log(JSON.stringify(response, null, 2));
         let aiResponseContent = response.text();
 
         // Extract the JSON object from the response.
