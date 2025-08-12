@@ -43,6 +43,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    justify-content: flex-end; 
 }
 
 /* NEW: Styles for the floating placeholder */
