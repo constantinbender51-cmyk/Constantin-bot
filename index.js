@@ -32,19 +32,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Add this near your other middleware
 app.use(express.json()); // Middleware to parse JSON bodies
 
-// --- NEW: Configuration for Notifications ---
-// IMPORTANT: Change this to your own secret topic!
-const NTFY_TOPIC = 'constantin-bot-notifications-xyz123'; 
-
-let system_prompt_guide;
-try {
-    system_prompt_guide = fs.readFileSync(path.join(__dirname, 'prompt_guide.txt'), 'utf8');
-    console.log("Successfully loaded prompt guide.");
-} catch (error) {
-    console.error("CRITICAL: Could not read prompt_guide.txt.", error);
-    system_prompt_guide = "You are a helpful assistant."; 
-}
-
 // --- NEW: Function to send the notification ---
 async function relayMessageToOwner(relayContent) {
     const notificationTitle = `New Message via Constantinbot`;
