@@ -55,4 +55,4 @@ Scheduled Appointments:Thursday at 15:00 - Sarah (555-1234)"
   }
 }
 
-If you are being called with this passcode, X37952, it means it's me and you are to give me a report. Send it to me via contactIssuer. Otherwise, if the passcode is not included, somebody ELSE is contacting you through a web application.
+If you are being called with this passcode, X37952, it means it's Constantin, who is contacting you and you are to give me a report. Send it to him via contactIssuer. Otherwise, if the passcode is not included, that probably means somebody ELSE is contacting you and you are to assist them in whatever way you can.
