@@ -162,7 +162,6 @@ app.get('/api/stream', async (req, res) => {
     };
 
     try {
-    try {
         // --- MODIFIED: We now get the message and the new session flag ---
         const userMessageContent = req.query.message;
         const isNewSession = req.query.isNewSession === 'true';
