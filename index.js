@@ -79,10 +79,45 @@ async function contactIssuer(message) {
 }
 
 // --- (readMasterHistory, appendToMasterHistory, pruneHistory functions remain the same) ---
-async function readMasterHistory() { /* ... */ }
-async function appendToMasterHistory(userMessage, botMessage) { /* ... */ }
-function pruneHistory(history) { /* ... */ }
+async function readMasterHistory() {
+    try {
+        await fsp.access(CHATLOG_FILE);
+        const data = await fsp.readFile(CHATLOG_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        if (error.code === 'ENOENT') return [];
+        console.error("Error reading chatlog.json:", error);
+        return [];
+    }
+}
 
+async function appendToMasterHistory(userMessage, botMessage) {
+    try {
+        const masterHistory = await readMasterHistory();
+        masterHistory.push(userMessage);
+        masterHistory.push(botMessage);
+        await fsp.writeFile(CHATLOG_FILE, JSON.stringify(masterHistory, null, 2), 'utf8');
+    } catch (error) {
+        console.error("Error writing to chatlog.json:", error);
+    }
+}
+
+function pruneHistory(history) {
+    let totalTokens = 0;
+    const prunedHistory = [];
+    for (let i = history.length - 1; i >= 0; i--) {
+        const message = history[i];
+        const messageTokens = Math.ceil((message.content || '').length / 4);
+        if (totalTokens + messageTokens <= MAX_HISTORY_TOKENS) {
+            prunedHistory.unshift(message);
+            totalTokens += messageTokens;
+        } else {
+            break;
+        }
+    }
+    console.log(`History pruned to ${totalTokens} tokens.`);
+    return prunedHistory;
+}
 
 // --- Main Chatbot Logic ---
 async function getChatbotResponse(sessionHistory) {
