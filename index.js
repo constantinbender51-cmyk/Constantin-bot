@@ -3,9 +3,8 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fsp } from 'fs';
-// THIS IS THE CORRECT WAY TO IMPORT THIS SPECIFIC LIBRARY
-import pkg from '@google/genai';
-const { GoogleGenerativeAI } = pkg;
+import { GoogleGenAI } from "@google/genai";
+
 
 // --- ES Module __dirname fix ---
 const __filename = fileURLToPath(import.meta.url);
