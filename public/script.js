@@ -1,34 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Element References ---
     const chatWindow = document.getElementById('chat-window');
-    // --- THE ONLY CHANGE IS ON THIS LINE ---
-    const messageForm = document.getElementById('chat-form'); // Changed from 'message-form' to 'chat-form'
-    // --- END OF CHANGE ---
+    const messageForm = document.getElementById('message-form');
     const messageInput = document.getElementById('message-input');
     const placeholder = document.getElementById('placeholder');
     const typingIndicator = document.getElementById('typing-indicator');
 
-    // --- State ---
-    let isNewSession = true;
+    let isNewSession = true; // Flag to track if this is the first message of the session
 
-    // --- Safety Check ---
-    if (!chatWindow || !messageForm || !messageInput) {
-        console.error("Essential chat elements are missing from the HTML. Aborting script.");
-        alert("Error: Chat interface is not loaded correctly.");
-        return;
-    }
-
-    // --- Functions ---
-
+    // --- NEW: Function to load history on page start ---
     const loadHistory = async () => {
         try {
             const response = await fetch('/api/history');
-            if (!response.ok) return;
             const history = await response.json();
-
-            if (history && history.length > 0) {
-                if (placeholder) placeholder.style.display = 'none';
+            if (history.length > 0) {
+                placeholder.style.display = 'none';
                 history.forEach(msg => {
+                    // Don't display the system-level session markers
                     if (msg.content !== '--- NEW SESSION ---') {
                         addMessage(msg.content, msg.role === 'user' ? 'user' : 'bot');
                     }
@@ -41,63 +28,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const addMessage = (text, sender, messageId = null) => {
         const messageElement = document.createElement('div');
-        messageElement.classList.add('message', `${sender}-message`);
-        if (messageId) messageElement.id = messageId;
-
-        const bubble = document.createElement('div');
-        bubble.classList.add('bubble');
-        bubble.textContent = text;
-
-        if (sender === 'user') {
-            const checkmark = document.createElement('span');
+        messageElement.classList.add('message', className);
+        const textNode = document.createElement('span');
+        textNode.textContent = text;
+        messageElement.appendChild(textNode);
+        let checkmark = null;
+        if (className === 'user-message') {
+            checkmark = document.createElement('div');
             checkmark.classList.add('checkmark');
-            checkmark.innerHTML = '&#10003;';
-            bubble.appendChild(checkmark);
+            messageElement.appendChild(checkmark);
         }
-
-        messageElement.appendChild(bubble);
-        chatWindow.appendChild(messageElement);
+        chatWindow.insertBefore(messageElement, typingIndicator);
         chatWindow.scrollTop = chatWindow.scrollHeight;
+        return className === 'user-message' ? checkmark : messageElement;
+    }// ... (addMessage function is the same) ...
     };
 
-    const handleFormSubmit = (e) => {
+    messageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const messageText = messageInput.value.trim();
         if (!messageText) return;
 
-        if (placeholder) placeholder.style.display = 'none';
-        
+        placeholder.style.display = 'none';
         const messageId = `msg-${Date.now()}`;
         addMessage(messageText, 'user', messageId);
         messageInput.value = '';
-        
-        if (typingIndicator) typingIndicator.classList.remove('hidden');
+        typingIndicator.style.display = 'flex';
 
+        // --- MODIFIED: We now send the message and the flag ---
         const queryParams = new URLSearchParams({
             message: messageText,
             isNewSession: isNewSession
         }).toString();
 
-        isNewSession = false;
-
         const eventSource = new EventSource(`/api/stream?${queryParams}`);
+        isNewSession = false; // After the first message, it's no longer a new session
 
         eventSource.addEventListener('ack', (event) => {
-            const sentMessage = document.getElementById(messageId);
-            if (sentMessage) {
-                const checkmark = sentMessage.querySelector('.checkmark');
-                if (checkmark) checkmark.classList.add('visible');
+            const data = JSON.parse(event.data);
+            if (data.status === 'received') {
+                const sentMessage = document.getElementById(messageId);
+                if (sentMessage) {
+                    const checkmark = sentMessage.querySelector('.checkmark');
+                    if (checkmark) checkmark.classList.add('visible');
+                }
             }
         });
 
         eventSource.addEventListener('message', (event) => {
-            if (typingIndicator) typingIndicator.classList.add('hidden');
-            try {
-                const data = JSON.parse(event.data);
-                addMessage(data.reply, 'bot');
-            } catch (err) {
-                console.error("Error parsing message data:", err);
-            }
+            const data = JSON.parse(event.data);
+            typingIndicator.style.display = 'none';
+            addMessage(data.reply, 'bot');
         });
 
         eventSource.addEventListener('done', () => {
@@ -105,15 +86,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         eventSource.onerror = () => {
-            if (typingIndicator) typingIndicator.classList.add('hidden');
-            addMessage("Sorry, a connection error occurred.", 'bot');
+            typingIndicator.style.display = 'none';
+            addMessage("Sorry, something went wrong. Please try again.", 'bot');
             eventSource.close();
         };
-    };
+    });
 
-    // --- Event Listeners ---
-    messageForm.addEventListener('submit', handleFormSubmit);
-
-    // --- Initial Load ---
+    // --- NEW: Load history when the page loads ---
     loadHistory();
 });
