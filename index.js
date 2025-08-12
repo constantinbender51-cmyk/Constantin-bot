@@ -3,8 +3,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fsp } from 'fs';
-import pkg from '@google/generative-ai';
-const { GoogleGenerativeAI } = pkg;
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // --- ES Module __dirname fix ---
 const __filename = fileURLToPath(import.meta.url);
