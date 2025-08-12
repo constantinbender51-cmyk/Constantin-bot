@@ -4,14 +4,14 @@ const fetch = require('node-fetch');
 const fs = require('fs'); // For synchronous file reading at startup
 const fsp = require('fs').promises; // For asynchronous file operations
 
-const { GoogleGenerativeAI } = require("@google/genai");
+const GoogleGenAI = require("@google/genai");
+const genAI = new GoogleGenAI.GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
 
 const CHATLOG_FILE = path.join(__dirname, 'chatlog.json');
