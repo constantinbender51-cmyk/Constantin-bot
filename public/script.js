@@ -1,21 +1,32 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Element References ---
     const chatWindow = document.getElementById('chat-window');
-    const messageForm = document.getElementById('chat-form');
+    const messageForm = document.getElementById('chat-form'); // Correctly targets your form ID
     const messageInput = document.getElementById('message-input');
     const placeholder = document.getElementById('placeholder');
     const typingIndicator = document.getElementById('typing-indicator');
 
-    let isNewSession = true; // Flag to track if this is the first message of the session
+    // --- State ---
+    let isNewSession = true;
 
-    // --- NEW: Function to load history on page start ---
+    // --- Safety Check ---
+    if (!chatWindow || !messageForm || !messageInput) {
+        console.error("Essential chat elements are missing from the HTML. Aborting script.");
+        alert("Error: Chat interface is not loaded correctly.");
+        return;
+    }
+
+    // --- Functions ---
+
     const loadHistory = async () => {
         try {
             const response = await fetch('/api/history');
+            if (!response.ok) return;
             const history = await response.json();
-            if (history.length > 0) {
-                placeholder.style.display = 'none';
+
+            if (history && history.length > 0) {
+                if (placeholder) placeholder.style.display = 'none';
                 history.forEach(msg => {
-                    // Don't display the system-level session markers
                     if (msg.content !== '--- NEW SESSION ---') {
                         addMessage(msg.content, msg.role === 'user' ? 'user' : 'bot');
                     }
@@ -26,59 +37,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- YOUR ORIGINAL, AESTHETICALLY CORRECT addMessage FUNCTION ---
     const addMessage = (text, sender, messageId = null) => {
         const messageElement = document.createElement('div');
-        messageElement.classList.add('message', className);
-        const textNode = document.createElement('span');
-        textNode.textContent = text;
-        messageElement.appendChild(textNode);
-        let checkmark = null;
-        if (className === 'user-message') {
-            checkmark = document.createElement('div');
-            checkmark.classList.add('checkmark');
-            messageElement.appendChild(checkmark);
+        // Use the 'sender' variable to set the correct class name
+        messageElement.classList.add('message', `${sender}-message`); 
+        if (messageId) {
+            messageElement.id = messageId;
         }
+
+        const bubble = document.createElement('div');
+        bubble.classList.add('bubble');
+        bubble.textContent = text;
+
+        if (sender === 'user') {
+            const checkmark = document.createElement('span');
+            checkmark.classList.add('checkmark');
+            checkmark.innerHTML = '&#10003;'; // Checkmark symbol
+            bubble.appendChild(checkmark);
+        }
+
+        messageElement.appendChild(bubble);
+        // Insert the new message BEFORE the typing indicator
         chatWindow.insertBefore(messageElement, typingIndicator);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-        return className === 'user-message' ? checkmark : messageElement;
-    }// ... (addMessage function is the same) ...
+        chatWindow.scrollTop = chatWindow.scrollHeight; // Auto-scroll
     };
 
-    messageForm.addEventListener('submit', async (e) => {
+    const handleFormSubmit = (e) => {
         e.preventDefault();
         const messageText = messageInput.value.trim();
         if (!messageText) return;
 
-        placeholder.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'none';
+        
         const messageId = `msg-${Date.now()}`;
         addMessage(messageText, 'user', messageId);
         messageInput.value = '';
-        typingIndicator.style.display = 'flex';
+        
+        if (typingIndicator) typingIndicator.classList.remove('hidden');
 
-        // --- MODIFIED: We now send the message and the flag ---
         const queryParams = new URLSearchParams({
             message: messageText,
             isNewSession: isNewSession
         }).toString();
 
+        isNewSession = false;
+
         const eventSource = new EventSource(`/api/stream?${queryParams}`);
-        isNewSession = false; // After the first message, it's no longer a new session
 
         eventSource.addEventListener('ack', (event) => {
-            const data = JSON.parse(event.data);
-            if (data.status === 'received') {
-                const sentMessage = document.getElementById(messageId);
-                if (sentMessage) {
-                    const checkmark = sentMessage.querySelector('.checkmark');
-                    if (checkmark) checkmark.classList.add('visible');
-                }
+            const sentMessage = document.getElementById(messageId);
+            if (sentMessage) {
+                const checkmark = sentMessage.querySelector('.checkmark');
+                if (checkmark) checkmark.classList.add('visible');
             }
         });
 
         eventSource.addEventListener('message', (event) => {
-            const data = JSON.parse(event.data);
-            typingIndicator.style.display = 'none';
-            addMessage(data.reply, 'bot');
+            if (typingIndicator) typingIndicator.classList.add('hidden');
+            try {
+                const data = JSON.parse(event.data);
+                addMessage(data.reply, 'bot');
+            } catch (err) {
+                console.error("Error parsing message data:", err);
+            }
         });
 
         eventSource.addEventListener('done', () => {
@@ -86,12 +108,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         eventSource.onerror = () => {
-            typingIndicator.style.display = 'none';
-            addMessage("Sorry, something went wrong. Please try again.", 'bot');
+            if (typingIndicator) typingIndicator.classList.add('hidden');
+            addMessage("Sorry, a connection error occurred.", 'bot');
             eventSource.close();
         };
-    });
+    };
 
-    // --- NEW: Load history when the page loads ---
+    // --- Event Listeners ---
+    messageForm.addEventListener('submit', handleFormSubmit);
+
+    // --- Initial Load ---
     loadHistory();
 });
