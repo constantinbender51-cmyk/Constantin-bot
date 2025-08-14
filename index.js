@@ -77,7 +77,7 @@ async function getChatbotResponse(sessionHistory) {
     try {
         const chat = model.startChat({
             history: geminiHistory,
-            generationConfig: { maxOutputTokens: 1024 },
+            generationConfig: { maxOutputTokens: 2048 },
         });
 
         // We send the system prompt as a new message in the chat.
