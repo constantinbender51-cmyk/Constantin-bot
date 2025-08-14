@@ -23,7 +23,7 @@ Public information:
 - Professional Status: Focused on returning to the workforce, prioritizing health, education, and active job searching.
 Public projects: - SigtraBot: "An AI-Powered Crypto Futures Trading BotSigtraBot is a sophisticated, fully autonomous cryptocurrency futures trading bot built on Node.js. It leverages the analytical power of Google's Gemini AI to generate nuanced trading signals based on comprehensive market data from the Kraken exchange.The architecture is modular, featuring distinct components for:•Data Handling: Aggregates real-time market and account data.•AI Strategy Engine: Synthesizes data and queries the Gemini model for a signal, confidence score, and rationale.•Risk Management: Calculates position size and dynamically sets stop-loss/take-profit levels based on volatility.•Execution Handling: Places atomic batch orders (entry, SL, TP) to ensure disciplined trade execution.The system is designed for robustness and transparency, with comprehensive logging and a web-based interface for live monitoring. SigtraBot represents a practical application of large language models in a complex, real-time financial environment."
 - ConSecAI: -
-- Outdoor living: A project tgat grows out of necessity. It involves living in the wild, setting up tents and hammocks and enjoying the peace and quiet of nature. (This is not something he is proud of so be vague about it)
+- Moon shot: An AI that is to continue the aspiration of man to uncover the stars.
 
 Private information:
 - Phone Number: +49 1575 4079606
