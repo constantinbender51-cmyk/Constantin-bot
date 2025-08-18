@@ -94,8 +94,19 @@ async function getChatbotResponse(sessionHistory) {
         });
 
         const result = await chat.sendMessage('');
+console.log('candidates', result.response.candidates);   // ← should show at least one
+console.log('promptFeedback', result.response.promptFeedback); // ← non-empty here == blocked
+        
         const raw = result.response.text();
-
+if (result.response.promptFeedback?.blockReason) {
+  console.error('Blocked:', result.response.promptFeedback.blockReason);
+  return { message: "I can't answer that right now.", execution: 'none' };
+}
+        if (!raw || !raw.trim()) {
+  console.warn('Empty candidate received from Gemini.');
+  return { message: "I’m experiencing a brief hiccup—could you repeat your last message?", execution: 'none' };
+        }
+        
 // -------------------------------------------------
 // DEBUG: dump the raw reply so we can inspect it
 console.log('>>> RAW GEMINI REPLY >>>\n', raw, '\n<<< END RAW <<<');
