@@ -64,17 +64,20 @@ async function contactIssuer(message) {
 // This function now ONLY uses the history from the current session.
 // --- Main Chatbot Logic ---
 // --- Main Chatbot Logic ---
+// --- Main Chatbot Logic ---
 async function getChatbotResponse(sessionHistory) {
     const promptTemplate = await fsp.readFile(PROMPT_TEMPLATE_FILE, 'utf8');
     const currentSchedule = await readPhoneSchedule();
 
-    // Inject current time (HH:MM, 24-hour) and schedule
-    const now = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    // Inject current date + time (German locale, 24-hour clock)
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('de-DE');
+    const timeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
     let systemPrompt = promptTemplate
         .replace('[SCHEDULE_PLACEHOLDER]', currentSchedule)
-        .replace('[CURRENT_TIME_PLACEHOLDER]', now);
+        .replace('[CURRENT_DATETIME_PLACEHOLDER]', `${dateStr} ${timeStr}`);
 
-    // Build history with system prompt first
     const geminiHistory = [
         { role: 'user', parts: [{ text: systemPrompt }] },
         { role: 'model', parts: [{ text: 'Acknowledged.' }] },
@@ -107,6 +110,7 @@ async function getChatbotResponse(sessionHistory) {
         return { message: "I'm having trouble connecting to my core intelligence. Please try again shortly.", execution: 'none' };
     }
 }
+
 
 // --- API Endpoints ---
 app.get('/api/stream', async (req, res) => {
