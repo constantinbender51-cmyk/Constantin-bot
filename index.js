@@ -96,6 +96,11 @@ async function getChatbotResponse(sessionHistory) {
         const result = await chat.sendMessage('');
         const raw = result.response.text();
 
+// -------------------------------------------------
+// DEBUG: dump the raw reply so we can inspect it
+console.log('>>> RAW GEMINI REPLY >>>\n', raw, '\n<<< END RAW <<<');
+// -------------------------------------------------
+        
         // Strip optional markdown fences and grab the *first* JSON object
         const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```|(\{[\s\S]*?\})/);
         const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[2]) : null;
