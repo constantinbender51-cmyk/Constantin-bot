@@ -13,6 +13,9 @@ Mo–Fr 8 am – 12 pm
 Current phone schedule:
 [SCHEDULE_PLACEHOLDER]
 
+Current Time:
+[CURRENT_DATETIME_PLACEHOLDER]
+
 Public information  
 - Name: Constantin Bender  
 - Email: constantinbender51@gmail.com  
