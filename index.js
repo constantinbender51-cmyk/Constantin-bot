@@ -62,17 +62,21 @@ async function contactIssuer(message) {
 
 // --- Main Chatbot Logic (SIMPLIFIED) ---
 // This function now ONLY uses the history from the current session.
+// --- Main Chatbot Logic ---
 async function getChatbotResponse(sessionHistory) {
-    // --- DYNAMIC PROMPT INJECTION ---
     const promptTemplate = await fsp.readFile(PROMPT_TEMPLATE_FILE, 'utf8');
     const currentSchedule = await readPhoneSchedule();
-    const finalSystemPrompt = promptTemplate.replace('[SCHEDULE_PLACEHOLDER]', currentSchedule);
+    const systemPrompt = promptTemplate.replace('[SCHEDULE_PLACEHOLDER]', currentSchedule);
 
-    // Convert the session history to the format Gemini expects.
-    const geminiHistory = sessionHistory.map(msg => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
-    }));
+    // Build history with system prompt first
+    const geminiHistory = [
+        { role: 'user', parts: [{ text: systemPrompt }] },
+        { role: 'model', parts: [{ text: 'Acknowledged.' }] }, // placeholder assistant reply
+        ...sessionHistory.map(msg => ({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
+        }))
+    ];
 
     try {
         const chat = model.startChat({
@@ -80,23 +84,17 @@ async function getChatbotResponse(sessionHistory) {
             generationConfig: { maxOutputTokens: 2048 },
         });
 
-        // We send the system prompt as a new message in the chat.
-        const result = await chat.sendMessage(finalSystemPrompt);
-        const response = result.response;
-        
-        console.log(JSON.stringify(response, null, 2));
-        let aiResponseContent = response.text();
+        // Send empty message to elicit next response
+        const result = await chat.sendMessage('');
+        const aiResponseContent = result.response.text();
 
-        // Extract the JSON object from the response.
         const startIndex = aiResponseContent.indexOf('{');
         const endIndex = aiResponseContent.lastIndexOf('}');
-        
+
         if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-            const jsonString = aiResponseContent.substring(startIndex, endIndex + 1);
-            return JSON.parse(jsonString);
+            return JSON.parse(aiResponseContent.substring(startIndex, endIndex + 1));
         } else {
-            // If no JSON is found, return a graceful error message.
-            console.error("No valid JSON object found in the Gemini response:", aiResponseContent);
+            console.error("No valid JSON object found:", aiResponseContent);
             return { message: aiResponseContent, execution: 'none' };
         }
     } catch (error) {
