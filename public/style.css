@@ -74,6 +74,13 @@ body {
     font-size: 1.1rem;
     margin: 0;
 }
+#placeholder-title {
+    width: 1022px;
+    height: 1024px;
+    margin-bottom: 15px;
+    /* Use a filter to change the SVG color to match our theme */
+    /*filter: invert(75%) sepia(0%) saturate(0%) hue-rotate(180deg) brightness(100%) contrast(100%);*/
+}
 
 /* A class to hide the placeholder smoothly */
 .hidden-placeholder {
