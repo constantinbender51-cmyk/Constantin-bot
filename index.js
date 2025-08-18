@@ -65,16 +65,16 @@ async function contactIssuer(message) {
 // --- Main Chatbot Logic ---
 // --- Main Chatbot Logic ---
 // --- Main Chatbot Logic ---
+// --- Main Chatbot Logic ---
 async function getChatbotResponse(sessionHistory) {
     const promptTemplate = await fsp.readFile(PROMPT_TEMPLATE_FILE, 'utf8');
     const currentSchedule = await readPhoneSchedule();
 
-    // Inject current date + time (German locale, 24-hour clock)
     const now = new Date();
     const dateStr = now.toLocaleDateString('de-DE');
     const timeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 
-    let systemPrompt = promptTemplate
+    const systemPrompt = promptTemplate
         .replace('[SCHEDULE_PLACEHOLDER]', currentSchedule)
         .replace('[CURRENT_DATETIME_PLACEHOLDER]', `${dateStr} ${timeStr}`);
 
@@ -94,19 +94,16 @@ async function getChatbotResponse(sessionHistory) {
         });
 
         const result = await chat.sendMessage('');
-        const aiResponseContent = result.response.text();
+        const raw = result.response.text();
 
-        const startIndex = aiResponseContent.indexOf('{');
-        const endIndex = aiResponseContent.lastIndexOf('}');
+        // Strip optional markdown fences and grab the *first* JSON object
+        const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```|(\{[\s\S]*?\})/);
+        const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[2]) : null;
 
-        if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-            return JSON.parse(aiResponseContent.substring(startIndex, endIndex + 1));
-        } else {
-            console.error("No valid JSON object found:", aiResponseContent);
-            return { message: aiResponseContent, execution: 'none' };
-        }
+        if (!jsonStr) throw new Error('No JSON block found');
+        return JSON.parse(jsonStr);
     } catch (error) {
-        console.error("Error calling Gemini API:", error);
+        console.error('Gemini/JSON error:', error);
         return { message: "I'm having trouble connecting to my core intelligence. Please try again shortly.", execution: 'none' };
     }
 }
