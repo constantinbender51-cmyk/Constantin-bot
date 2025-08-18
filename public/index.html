@@ -5,30 +5,139 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ConSecAI</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Add Montserrat font from Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Montserrat with light and regular weights -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
-        /* Add this style for your title */
+        body {
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            font-family: 'Montserrat', sans-serif;
+            color: #2d3436;
+        }
+        
+        #app-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        #chat-container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+        
+        .chat-header {
+            padding: 30px 40px 20px;
+            border-bottom: 1px solid #eaeaea;
+            text-align: center;
+        }
+        
         .chat-title {
             font-family: 'Montserrat', sans-serif;
-            font-weight: 400; /* Regular/Thinner weight */
-            font-size: 1.8rem;
+            font-weight: 300;
+            font-size: 2.2rem;
+            letter-spacing: 0.5px;
+            color: #2d3436;
+            margin: 0;
+            padding: 0;
+        }
+        
+        #chat-window {
+            flex: 1;
+            padding: 30px 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #placeholder {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             text-align: center;
-            margin: 15px 0 25px 0;
-            color: #333; /* Adjust color as needed */
+            padding: 40px 20px;
+        }
+        
+        #placeholder-logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
+        #placeholder-text {
+            font-weight: 400;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #636e72;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        #chat-form {
+            padding: 25px 40px;
+            border-top: 1px solid #eaeaea;
+            background: #f8f9fa;
+            display: flex;
+            gap: 15px;
+        }
+        
+        #message-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 1px solid #dfe6e9;
+            border-radius: 8px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        #message-input:focus {
+            outline: none;
+            border-color: #74b9ff;
+            box-shadow: 0 0 0 3px rgba(116, 185, 255, 0.1);
+        }
+        
+        #chat-form button {
+            padding: 15px 30px;
+            background: #2d3436;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #chat-form button:hover {
+            background: #1a1e1f;
         }
     </style>
 </head>
 <body>
     <div id="app-container">
         <div id="chat-container">
-            <div id="chat-window">
-                <!-- Added title inside chat window -->
+            <div class="chat-header">
                 <h1 class="chat-title">ConSecAI</h1>
-                <!-- Placeholder for the empty state -->
+            </div>
+            
+            <div id="chat-window">
                 <div id="placeholder">
-                    <img src="file_0000000086dc624388c4924d063da746.png" alt="AI Logo 2" id="placeholder-logo">
-                    <p id="placeholder-text">Hey there! I'm Constantin's digital secretary. Need help with something?</p>
+                    <img src="file_0000000086dc624388c4924d063da746.png" alt="AI Logo" id="placeholder-logo">
+                    <p id="placeholder-text">Hey there! I'm Constantin's digital secretary. How may I assist you today?</p>
                 </div>
                 
                 <div id="typing-indicator" class="message bot-message hidden">
@@ -37,8 +146,9 @@
                     <div class="dot"></div>
                 </div>
             </div>
+            
             <form id="chat-form">
-                <input type="text" id="message-input" placeholder="Ask away..." autocomplete="off" required>
+                <input type="text" id="message-input" placeholder="Type your message..." autocomplete="off" required>
                 <button type="submit">Send</button>
             </form>
         </div>
