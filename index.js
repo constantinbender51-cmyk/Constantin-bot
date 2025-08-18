@@ -63,15 +63,21 @@ async function contactIssuer(message) {
 // --- Main Chatbot Logic (SIMPLIFIED) ---
 // This function now ONLY uses the history from the current session.
 // --- Main Chatbot Logic ---
+// --- Main Chatbot Logic ---
 async function getChatbotResponse(sessionHistory) {
     const promptTemplate = await fsp.readFile(PROMPT_TEMPLATE_FILE, 'utf8');
     const currentSchedule = await readPhoneSchedule();
-    const systemPrompt = promptTemplate.replace('[SCHEDULE_PLACEHOLDER]', currentSchedule);
+
+    // Inject current time (HH:MM, 24-hour) and schedule
+    const now = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    let systemPrompt = promptTemplate
+        .replace('[SCHEDULE_PLACEHOLDER]', currentSchedule)
+        .replace('[CURRENT_TIME_PLACEHOLDER]', now);
 
     // Build history with system prompt first
     const geminiHistory = [
         { role: 'user', parts: [{ text: systemPrompt }] },
-        { role: 'model', parts: [{ text: 'Acknowledged.' }] }, // placeholder assistant reply
+        { role: 'model', parts: [{ text: 'Acknowledged.' }] },
         ...sessionHistory.map(msg => ({
             role: msg.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: msg.content }]
@@ -84,7 +90,6 @@ async function getChatbotResponse(sessionHistory) {
             generationConfig: { maxOutputTokens: 2048 },
         });
 
-        // Send empty message to elicit next response
         const result = await chat.sendMessage('');
         const aiResponseContent = result.response.text();
 
