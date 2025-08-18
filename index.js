@@ -79,13 +79,13 @@ async function getChatbotResponse(sessionHistory) {
         .replace('[CURRENT_DATETIME_PLACEHOLDER]', `${dateStr} ${timeStr}`);
 
     const geminiHistory = [
-        { role: 'user', parts: [{ text: systemPrompt }] },
-        { role: 'model', parts: [{ text: 'Acknowledged.' }] },
-        ...sessionHistory.map(msg => ({
-            role: msg.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: msg.content }]
-        }))
-    ];
+  { role: 'user', parts: [{ text: systemPrompt }] },
+  { role: 'model', parts: [{ text: 'Acknowledged.' }] }, // model acknowledgement
+  ...sessionHistory.map(msg => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }]
+  }))
+];
 
     try {
         const chat = model.startChat({
