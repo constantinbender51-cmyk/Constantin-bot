@@ -66,10 +66,11 @@ async function contactIssuer(message) {
 // --- Main Chatbot Logic ---
 // --- Main Chatbot Logic ---
 // --- Main Chatbot Logic ---
+// --- Main Chatbot Logic ---
 async function getChatbotResponse(sessionHistory) {
+    // Build the dynamic prompt
     const promptTemplate = await fsp.readFile(PROMPT_TEMPLATE_FILE, 'utf8');
     const currentSchedule = await readPhoneSchedule();
-
     const now = new Date();
     const dateStr = now.toLocaleDateString('de-DE');
     const timeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -78,57 +79,22 @@ async function getChatbotResponse(sessionHistory) {
         .replace('[SCHEDULE_PLACEHOLDER]', currentSchedule)
         .replace('[CURRENT_DATETIME_PLACEHOLDER]', `${dateStr} ${timeStr}`);
 
-const geminiHistory = [
-  { role: 'user', parts: [{ text: systemPrompt }] },
-  { role: 'model', parts: [{ text: 'Acknowledged.' }] },
-  ...sessionHistory.map(msg => ({
-    role: msg.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: msg.content }]
-  }))
-];
+    // Single-turn prompt: system + history + JSON demand
+    const fullPrompt = `${systemPrompt}\n\n--- Conversation so far ---\n` +
+        sessionHistory.map(h => `${h.role}: ${h.content}`).join('\n') +
+        `\n\nNow reply ONLY with the JSON object and absolutely nothing else.`;
 
-
-
-    try {
-        const chat = model.startChat({
-            history: geminiHistory,
-            generationConfig: { maxOutputTokens: 2048 },
-        });
-
-        const result = await chat.sendMessage('', {
-  generationConfig: {
-    responseMimeType: 'application/json',
-    maxOutputTokens: 2048
-  }
-});
-console.log('candidates', result.response.candidates);   // ← should show at least one
-console.log('promptFeedback', result.response.promptFeedback); // ← non-empty here == blocked
-        
-        const raw = result.response.text();
-if (result.response.promptFeedback?.blockReason) {
-  console.error('Blocked:', result.response.promptFeedback.blockReason);
-  return { message: "I can't answer that right now.", execution: 'none' };
-}
-        if (!raw || !raw.trim()) {
-  console.warn('Empty candidate received from Gemini.');
-  return { message: "I’m experiencing a brief hiccup—could you repeat your last message?", execution: 'none' };
+    const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+        generationConfig: {
+            responseMimeType: 'application/json',
+            maxOutputTokens: 2048
         }
-        
-// -------------------------------------------------
-// DEBUG: dump the raw reply so we can inspect it
-console.log('>>> RAW GEMINI REPLY >>>\n', raw, '\n<<< END RAW <<<');
-// -------------------------------------------------
-        
-        // Strip optional markdown fences and grab the *first* JSON object
-        const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```|(\{[\s\S]*?\})/);
-        const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[2]) : null;
+    });
 
-        if (!jsonStr) throw new Error('No JSON block found');
-        return JSON.parse(jsonStr);
-    } catch (error) {
-        console.error('Gemini/JSON error:', error);
-        return { message: "I'm having trouble connecting to my core intelligence. Please try again shortly.", execution: 'none' };
-    }
+    const raw = result.response.text();
+    console.log('>>> RAW GEMINI JSON >>>', raw, '<<<');
+    return JSON.parse(raw);
 }
 
 
