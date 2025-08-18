@@ -3,7 +3,7 @@ body,
 .message,
 #placeholder h1,
 #placeholder p {
-  letter-spacing: -0px;
+  letter-spacing: -1px;
 }
 /* --- Modern Chat Interface (Monochrome Corporate) --- */
 body {
