@@ -46,7 +46,7 @@ body {
     justify-content: flex-end; 
 }
 #chat-window {
-    margin-bottom: 10px;
+    margin-bottom: 20px;
 }
 
 /* NEW: Styles for the floating placeholder */
@@ -54,10 +54,10 @@ body {
     /* Centering magic */
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: center;
     align-items: center;
     text-align: center;
-    height: auto; /* Take up the full height of the chat window */
+    height: 100%; /* Take up the full height of the chat window */
     
     /* Style */
     color: #b0b0b0; /* A light grey for subtle text */
