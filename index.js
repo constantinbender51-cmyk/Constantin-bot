@@ -59,7 +59,16 @@ async function contactIssuer(message) {
         console.error("Failed to send notification via ntfy:", error);
     }
 }
-
+    async function safeParse(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch (_) {
+    // try once more after trimming
+    const trimmed = raw.trim();
+    if (trimmed) return JSON.parse(trimmed);
+    throw new Error('Empty or partial JSON');
+  }
+}
 // --- Main Chatbot Logic (SIMPLIFIED) ---
 // This function now ONLY uses the history from the current session.
 // --- Main Chatbot Logic ---
@@ -94,7 +103,17 @@ async function getChatbotResponse(sessionHistory) {
 
     const raw = result.response.text();
     console.log('>>> RAW GEMINI JSON >>>', raw, '<<<');
-    return JSON.parse(raw);
+
+
+// inside getChatbotResponse, after console.log(...)
+let payload;
+try {
+  payload = await safeParse(raw);
+} catch (e) {
+  console.warn('JSON parse failed:', e.message);
+  payload = { message: 'I received an unclear response—could you please repeat?', execution: 'none' };
+}
+return payload;
 }
 
 
