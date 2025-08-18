@@ -45,9 +45,6 @@ body {
     gap: 12px;
     justify-content: flex-end; 
 }
-#chat-window {
-    margin-bottom: 20px;
-}
 
 /* NEW: Styles for the floating placeholder */
 #placeholder {
