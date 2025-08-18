@@ -93,19 +93,31 @@ async function getChatbotResponse(sessionHistory) {
             generationConfig: { maxOutputTokens: 2048 },
         });
 
-        const result = await chat.sendMessage('');
-        const raw = result.response.text();
+        // --- inside getChatbotResponse, right after chat.sendMessage('') ---
+const result = await chat.sendMessage('');
+const raw = result.response.text();
 
-        // Strip optional markdown fences and grab the *first* JSON object
-        const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```|(\{[\s\S]*?\})/);
-        const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[2]) : null;
+// -------------------------------------------------
+// DEBUG: dump the raw reply so we can inspect it
+console.log('>>> RAW GEMINI REPLY >>>\n', raw, '\n<<< END RAW <<<');
+// -------------------------------------------------
 
-        if (!jsonStr) throw new Error('No JSON block found');
-        return JSON.parse(jsonStr);
-    } catch (error) {
-        console.error('Gemini/JSON error:', error);
-        return { message: "I'm having trouble connecting to my core intelligence. Please try again shortly.", execution: 'none' };
-    }
+// now proceed with your normal extraction
+const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```|(\{[\s\S]*?\})/);
+const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[2]) : null;
+
+if (!jsonStr) {
+  console.error('No JSON block found in reply');
+  return { message: "Sorry, I received an unexpected response format.", execution: 'none' };
+}
+
+try {
+  return JSON.parse(jsonStr);
+} catch (e) {
+  console.error('JSON parse failed:', e, '\nString:', jsonStr);
+  return { message: "Sorry, I couldn't parse my own response.", execution: 'none' };
+}
+
 }
 
 
