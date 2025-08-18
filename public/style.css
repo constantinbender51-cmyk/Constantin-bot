@@ -45,21 +45,24 @@ body {
     gap: 12px;
     justify-content: flex-end; 
 }
+#chat-window {
+    margin-bottom: 10px;
+}
 
 /* NEW: Styles for the floating placeholder */
 #placeholder {
     /* Centering magic */
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     text-align: center;
-    height: 100%; /* Take up the full height of the chat window */
+    height: auto; /* Take up the full height of the chat window */
     
     /* Style */
     color: #b0b0b0; /* A light grey for subtle text */
     user-select: none; /* Make the text unselectable */
-    transition: opacity 0.3s ease-out; /* For a smooth fade-out */
+    transition: opacity 0.9s ease-out; /* For a smooth fade-out */
 }
 
 #placeholder-logo {
