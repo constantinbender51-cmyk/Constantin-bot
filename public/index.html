@@ -6,27 +6,26 @@
     <title>ConSecAI</title>
     <link rel="stylesheet" href="style.css">
     <!-- Add Montserrat font from Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
     <style>
         /* Add this style for your title */
-        .title {
+        .chat-title {
             font-family: 'Montserrat', sans-serif;
-            font-weight: 700; /* Bold weight */
-            font-size: 2rem;
+            font-weight: 400; /* Regular/Thinner weight */
+            font-size: 1.8rem;
             text-align: center;
-            margin: 20px 0;
+            margin: 15px 0 25px 0;
             color: #333; /* Adjust color as needed */
         }
     </style>
 </head>
 <body>
     <div id="app-container">
-        <!-- Add the title here -->
-        <h1 class="title">ConSecAI</h1>
-        
         <div id="chat-container">
             <div id="chat-window">
-                <!-- NEW: Placeholder for the empty state -->
+                <!-- Added title inside chat window -->
+                <h1 class="chat-title">ConSecAI</h1>
+                <!-- Placeholder for the empty state -->
                 <div id="placeholder">
                     <img src="file_0000000086dc624388c4924d063da746.png" alt="AI Logo 2" id="placeholder-logo">
                     <p id="placeholder-text">Hey there! I'm Constantin's digital secretary. Need help with something?</p>
