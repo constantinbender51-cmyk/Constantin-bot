@@ -117,9 +117,8 @@ try {
   console.error('JSON parse failed:', e, '\nString:', jsonStr);
   return { message: "Sorry, I couldn't parse my own response.", execution: 'none' };
 }
-
+    }
 }
-
 
 // --- API Endpoints ---
 app.get('/api/stream', async (req, res) => {
