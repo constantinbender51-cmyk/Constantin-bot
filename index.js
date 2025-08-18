@@ -79,12 +79,15 @@ async function getChatbotResponse(sessionHistory) {
         .replace('[CURRENT_DATETIME_PLACEHOLDER]', `${dateStr} ${timeStr}`);
 
 const geminiHistory = [
-  { role: 'system', parts: [{ text: systemPrompt }] },
+  { role: 'user', parts: [{ text: systemPrompt }] },
+  { role: 'model', parts: [{ text: 'Acknowledged.' }] },
   ...sessionHistory.map(msg => ({
     role: msg.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: msg.content }]
   }))
 ];
+
+
 
     try {
         const chat = model.startChat({
@@ -92,7 +95,12 @@ const geminiHistory = [
             generationConfig: { maxOutputTokens: 2048 },
         });
 
-        const result = await chat.sendMessage('');
+        const result = await chat.sendMessage('', {
+  generationConfig: {
+    responseMimeType: 'application/json',
+    maxOutputTokens: 2048
+  }
+});
 console.log('candidates', result.response.candidates);   // ← should show at least one
 console.log('promptFeedback', result.response.promptFeedback); // ← non-empty here == blocked
         
