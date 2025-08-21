@@ -28,6 +28,15 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     )
   `);
 })();
+// --- PostgreSQL init (run once at startup) ---
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS schedule (
+    id SERIAL PRIMARY KEY,
+    content TEXT NOT NULL
+  )
+`);
+
+
 
 // --- Gemini Initialization ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -52,23 +61,19 @@ async function saveMessage(role, content) {
   }
 }
 
-// --- Helper Functions (unchanged) ---
+// --- DB helpers for schedule ---
 async function readPhoneSchedule() {
-  try {
-    return await fsp.readFile(SCHEDULE_FILE, 'utf8');
-  } catch (error) {
-    if (error.code === 'ENOENT') return 'No schedule has been set.';
-    return 'Schedule currently unavailable.';
-  }
+  const { rows } = await pool.query(
+    'SELECT content FROM schedule ORDER BY id DESC LIMIT 1'
+  );
+  return rows.length ? rows[0].content : 'No schedule has been set.';
 }
 
 async function writePhoneSchedule(newSchedule) {
-  try {
-    await fsp.writeFile(SCHEDULE_FILE, newSchedule, 'utf8');
-    console.log('Phone schedule has been completely updated.');
-  } catch (error) {
-    console.error('Error writing schedule file:', error);
-  }
+  // simple: always keep one row, overwrite it
+  await pool.query('DELETE FROM schedule');            // wipe
+  await pool.query('INSERT INTO schedule(content) VALUES ($1)', [newSchedule]);
+  console.log('Phone schedule updated in DB.');
 }
 
 async function contactIssuer(message) {
