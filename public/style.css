@@ -174,3 +174,19 @@ body {
   #app-container { height: 95vh; }
   #chat-container { border-radius: 0; }
 }
+/* ----- override only the white accents ----- */
+:root {
+  --accent: #e1e3e6;                 /* softer gray-white */
+  --accent-alpha: rgba(225, 227, 230, 0.09);
+}
+
+/* thinner accent strokes */
+.user-message  { border-right-width: 1px; }
+.bot-message   { border-left-width:  1px; }
+
+/* subtle glow instead of flat color on button hover */
+#chat-form button:hover {
+  background: rgba(225, 227, 230, 0.12);
+  box-shadow: 0 0 10px rgba(225, 227, 230, 0.06);
+}
+
