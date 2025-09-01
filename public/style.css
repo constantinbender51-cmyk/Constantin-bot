@@ -122,6 +122,60 @@ body {
     border: 1px solid #f3f4f6;
 }
 
+/* New styles for the books button and list */
+#utility-area {
+    display: flex;
+    justify-content: flex-start;
+    padding: 0 15px 10px;
+}
+
+.utility-button {
+    padding: 8px 15px;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    background-color: #f9fafb;
+    color: #1f2937;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.utility-button:hover {
+    background-color: #e5e7eb;
+}
+
+#book-list {
+    padding: 15px;
+    border-top: 1px solid #e8e8e8;
+    background-color: #f9fafb;
+    transition: height 0.3s ease, padding 0.3s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#book-list.hidden {
+    height: 0;
+    padding: 0 15px;
+    border-top: none;
+}
+
+.book-item {
+    padding: 10px 15px;
+    border-radius: 8px;
+    background-color: #ffffff;
+    color: #2f3136;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    font-size: 0.9rem;
+}
+
+.book-item:hover {
+    background-color: #f3f4f6;
+}
+
 #chat-form {
     display: flex;
     padding: 15px;
