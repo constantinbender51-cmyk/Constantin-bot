@@ -6,6 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const placeholder = document.getElementById('placeholder');
     const typingIndicator = document.getElementById('typing-indicator');
 
+    // --- New element references for the books feature ---
+    const booksButton = document.getElementById('books-button');
+    const bookList = document.getElementById('book-list');
+
     // --- Simple, single-session history ---
     let conversationHistory = [];
     let hasStarted = false;
@@ -30,6 +34,19 @@ document.addEventListener('DOMContentLoaded', () => {
         chatWindow.scrollTop = chatWindow.scrollHeight;
         return checkmark; // Return only the checkmark element for user messages
     }
+
+    // --- New event listeners for the books feature ---
+    booksButton.addEventListener('click', () => {
+        bookList.classList.toggle('hidden');
+    });
+
+    bookList.addEventListener('click', (event) => {
+        const bookItem = event.target.closest('.book-item');
+        if (bookItem) {
+            const url = bookItem.dataset.url;
+            window.location.href = url;
+        }
+    });
 
     // --- Your original submit listener, simplified for single-session ---
     chatForm.addEventListener('submit', (event) => {
